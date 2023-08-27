@@ -41,41 +41,45 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context){
 	}
 
 	user := h.GetUser(c)
-	var media []byte = nil
-	var folderName string
-	fileName := ""
-	// var savedFile *os.File
+	fileInfo := struct{
+		Media []byte
+		FolderName string
+		FileName string
+		SavedFile *os.File
+	}{}
 
 	if form.File != nil {
 		var err error = nil
-		media,_ ,err = h.SaveUploadedFile(c,form.File)
+		fileInfo.Media,fileInfo.SavedFile ,err = h.SaveUploadedFile(c,form.File)
 		if err != nil {
 			panic(err.Error())
 		}
 
-		folderName,err = h.CheckFileType(form.File)
+		fileInfo.FolderName,err = h.CheckFileType(form.File)
 		if err != nil {
 			panic(err.Error())
 		}
 
-		fileName = form.File.Filename
+		fileInfo.FolderName = "post_"+fileInfo.FolderName
+		fileInfo.FileName = form.File.Filename
 	}
 
 	data,err := pc.Service.CreatePostPayload(context.Background(),&form,user,tp.UploadFile{
-		Data: media,
-		Folder: folderName,
-		Name: fileName,
+		Data: fileInfo.Media,
+		Folder: fileInfo.FolderName,
+		Name: fileInfo.FileName,
 	})
 
 	if err != nil {
 		web.AbortHttp(c,err)
+		return
 	}
 
 	pc.Repo.Create(context.Background(),&data)
 
 	if form.File != nil {
-		// savedFile.Close()
-		os.Remove(h.GetUploadDir(fileName))
+		fileInfo.SavedFile.Close()
+		os.Remove(h.GetUploadDir(fileInfo.FileName))
 	}
 
 	web.WriteResponse(c,web.WebResponse{
@@ -97,6 +101,8 @@ func (pc *PostControllerImpl) FindById(c *gin.Context){
 		web.AbortHttp(c,err)
 		return
 	}
+
+	data.Text = h.Decryption(data.Text)
 
 	web.WriteResponse(c,web.WebResponse{
 		Data: data,

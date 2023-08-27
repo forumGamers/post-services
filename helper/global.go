@@ -47,11 +47,10 @@ func SaveUploadedFile(c *gin.Context,uploadsFile *multipart.FileHeader) ([]byte,
 
 	file,_ := os.Open(GetUploadDir(uploadsFile.Filename))
 
-	defer file.Close()
-
 	data,err := ioutil.ReadAll(file)
 
 	if err != nil {
+		file.Close()
 		return nil,file, err
 	}
 

@@ -6,7 +6,7 @@ import (
 	c "github.com/post-services/controller"
 	h "github.com/post-services/helper"
 	"github.com/post-services/routes"
-	// tp "github.com/post-services/third-party"
+	tp "github.com/post-services/third-party"
 	v "github.com/post-services/validations"
 
 	r "github.com/post-services/repository"
@@ -17,10 +17,10 @@ func main() {
 	h.PanicIfError(godotenv.Load())
 	db := cfg.Connection()
 	validate := v.GetValidator()
-	// imageKit := tp.ImageKitConnection()
+	imageKit := tp.ImageKitConnection()
 
 	postRepo := r.NewPostRepo(db.Collection("post"))
-	postService := s.NewPostService(postRepo,validate)
+	postService := s.NewPostService(postRepo,validate,imageKit)
 	postController := c.NewPostController(postService,postRepo)
 
 	routes.NewRouter(postController)

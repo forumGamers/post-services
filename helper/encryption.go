@@ -31,10 +31,14 @@ func Encryption(data string) string {
 
 func Decryption(data string) string {
 	cipherText, err := base64.StdEncoding.DecodeString(data)
-	PanicIfError(fmt.Errorf("could not base64 decode: %v", err))
+	if err != nil {
+		PanicIfError(fmt.Errorf("could not base64 decode: %v", err))
+	}
 
 	block, err := aes.NewCipher([]byte(os.Getenv("ENCRPYTION_KEY")))
-	PanicIfError(fmt.Errorf("could not create new cipher: %v", err))
+	if err != nil {
+		PanicIfError(fmt.Errorf("could not create new cipher: %v", err))
+	}
 
 	if len(cipherText) < aes.BlockSize {
 		panic(InvalidChiper.Error()) //buat testing untuk tes kalau enkripsinya ga sesuai

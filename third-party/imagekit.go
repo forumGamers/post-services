@@ -9,7 +9,7 @@ import (
 )
 
 type ImageKitService interface {
-	Upload(ctx context.Context,file []byte,fileName string,folder string)ImageKitResult
+	UploadFile(ctx context.Context,file []byte,fileName string,folder string) ImageKitResult
 	UpdateImage(ctx context.Context,file []byte,fileName string,folder string,updatedFileID string,resultCh chan<- ImageKitResult)
 	Delete(ctx context.Context,imageId string,ch chan<- error)
 }
@@ -31,10 +31,12 @@ type UploadFile struct {
 }
 
 func ImageKitConnection() ImageKitService {
-	ik,err := imagekit.NewClient(&imagekit.Options{
-		PublicKey: os.Getenv("IMAGEKIT_PRIVATE_KEY"),
-		PrivateKey: os.Getenv("IMAGEKIT_PUBLIC_KEY"),
-	})
+	opts := imagekit.Options{
+		PublicKey: os.Getenv("IMAGEKIT_PUBLIC_KEY"),
+		PrivateKey: os.Getenv("IMAGEKIT_PRIVATE_KEY"),
+	}
+
+	ik,err := imagekit.NewClient(&opts)
 	h.PanicIfError(err)
 
 	return &ImageKit{
@@ -42,13 +44,14 @@ func ImageKitConnection() ImageKitService {
 	}
 }
 
-func (ik ImageKit) Upload(ctx context.Context,file []byte,fileName string,folder string) ImageKitResult {
-	uploadResponse, err := ik.Client.Upload.ServerUpload(ctx,&imagekit.UploadRequest{
+func (ik *ImageKit) UploadFile(ctx context.Context,file []byte,fileName string,folder string) ImageKitResult {
+	uploadRequest := imagekit.UploadRequest{
 		File:              file,
 		FileName:          fileName,
 		UseUniqueFileName: true,
 		Folder:            folder,
-	})
+	}
+	uploadResponse, err := ik.Client.Upload.ServerUpload(ctx,&uploadRequest)
 
 	return ImageKitResult{
 		Url: uploadResponse.URL,
@@ -59,7 +62,7 @@ func (ik ImageKit) Upload(ctx context.Context,file []byte,fileName string,folder
 
 func (ik *ImageKit) UpdateImage(ctx context.Context,file []byte,fileName string,folder string,updatedFileID string,ch chan<- ImageKitResult){
 	go func(){
-		ch <- ik.Upload(ctx,file,fileName,folder)
+		ch <- ik.UploadFile(ctx,file,fileName,folder)
 	}()
 
 	go func(){
