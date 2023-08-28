@@ -1,9 +1,11 @@
 package post_test
 
 import (
+	"mime/multipart"
 	"testing"
 
 	p "github.com/post-services/pkg/post"
+	post_utils "github.com/post-services/pkg/post/utils"
 	v "github.com/post-services/validations"
 	"github.com/post-services/web"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +21,13 @@ var postTest = &p.PostServiceImpl{
 	ImageKit: &mockImageKit,
 }
 
+func TestMain(m *testing.M){
+	m.Run()
+}
+
 func TestValidatePostInput(t *testing.T) {
+	file,_ := post_utils.ReadFile("../static/meteor2-02.png")
+
 	datas := []struct{
 		Name		string
 		Data		web.PostForm
@@ -35,6 +43,52 @@ func TestValidatePostInput(t *testing.T) {
 			},
 			Error: true,
 		},
+		{
+			Name: "Privacy input isnot in enum",
+			Data: web.PostForm{
+				File: nil,
+				Text: "test",
+				Privacy: "Close",
+				AllowComment: true,
+			},
+			Error: true,
+		},
+		{
+			Name: "success with file",
+			Data: web.PostForm{
+				File: &multipart.FileHeader{
+					Filename: "image",
+					Size: int64(len(file)),
+				},
+				Text: "test",
+				Privacy: "Public",
+				AllowComment: true,
+			},
+			Error: false,
+		},
+		{
+			Name: "success with file only",
+			Data: web.PostForm{
+				File: &multipart.FileHeader{
+					Filename: "image",
+					Size: int64(len(file)),
+				},
+				Text: "",
+				Privacy: "Public",
+				AllowComment: true,
+			},
+			Error: false,
+		},
+		{
+			Name: "success with text only",
+			Data: web.PostForm{
+				File: nil,
+				Text: "test",
+				Privacy: "Public",
+				AllowComment: true,
+			},
+			Error: false,
+		},
 	}
 
 	for _,data := range datas {
@@ -49,3 +103,26 @@ func TestValidatePostInput(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkValidatePostInput(b *testing.B) {
+	file,_ := post_utils.ReadFile("../static/meteor2-02.png")
+
+	data := web.PostForm{
+		File: &multipart.FileHeader{
+			Filename: "image",
+			Size: int64(len(file)),
+		},
+		Text: "test",
+		Privacy: "Public",
+		AllowComment: true,
+	}
+
+	b.ResetTimer()
+
+	for i := 0 ; i < b.N ; i++ {
+		if err := postTest.ValidatePostInput(&data) ; err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
