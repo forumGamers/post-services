@@ -7,9 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	h "github.com/post-services/helper"
 	m "github.com/post-services/models"
-	r "github.com/post-services/repository"
-	s "github.com/post-services/services"
 	tp "github.com/post-services/third-party"
+	p "github.com/post-services/pkg/post"
 	"github.com/post-services/web"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -20,11 +19,11 @@ type PostController interface {
 }
 
 type PostControllerImpl struct {
-	Service		s.PostService
-	Repo		r.PostRepo
+	Service		p.PostService
+	Repo		p.PostRepo
 }
 
-func NewPostController(service s.PostService,repo r.PostRepo) PostController {
+func NewPostController(service p.PostService,repo p.PostRepo) PostController {
 	return &PostControllerImpl{
 		Service: service,
 		Repo: repo,
@@ -81,6 +80,8 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context){
 		fileInfo.SavedFile.Close()
 		os.Remove(h.GetUploadDir(fileInfo.FileName))
 	}
+
+	data.Text = h.Decryption(data.Text)
 
 	web.WriteResponse(c,web.WebResponse{
 		Code: 201,

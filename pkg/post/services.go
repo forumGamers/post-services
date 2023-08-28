@@ -1,4 +1,4 @@
-package services
+package post
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	h "github.com/post-services/helper"
 	m "github.com/post-services/models"
-	r "github.com/post-services/repository"
 	tp "github.com/post-services/third-party"
 	"github.com/post-services/web"
 )
@@ -18,12 +17,12 @@ type PostService interface {
 }
 
 type PostServiceImpl struct {
-	Repo 		r.PostRepo
-	Validate 	*validator.Validate
-	ImageKit 	tp.ImageKitService
+	Repo		PostRepo
+	Validate	*validator.Validate
+	ImageKit	tp.ImageKitService
 }
 
-func NewPostService(repo r.PostRepo,validate *validator.Validate,ik tp.ImageKitService) PostService {
+func NewPostService(repo PostRepo,validate *validator.Validate,ik tp.ImageKitService) PostService {
 	return &PostServiceImpl{
 		Repo: repo,
 		Validate: validate,
@@ -66,9 +65,6 @@ func (ps *PostServiceImpl) CreatePostPayload(
 			Url: result.Url,
 			Id: result.FileId,
 			Type: file.Folder,
-			// Url: "",
-			// Id: "",
-			// Type: "",
 		},
 		AllowComment: data.AllowComment,
 		CreatedAt: time.Now(),

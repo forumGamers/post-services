@@ -1,4 +1,4 @@
-package repository
+package post
 
 import (
 	"context"
@@ -12,10 +12,10 @@ import (
 
 type PostRepo interface {
 	Create(ctx context.Context,data *m.Post)
-	FindById(ctx context.Context, id primitive.ObjectID,data *m.Post) error
+	FindById(ctx context.Context,id primitive.ObjectID,data *m.Post) error
 }
 
-type PostRepoImpl struct{
+type PostRepoImpl struct {
 	DB 		*mongo.Collection
 }
 

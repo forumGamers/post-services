@@ -5,12 +5,10 @@ import (
 	cfg "github.com/post-services/config"
 	c "github.com/post-services/controller"
 	h "github.com/post-services/helper"
+	p "github.com/post-services/pkg/post"
 	"github.com/post-services/routes"
 	tp "github.com/post-services/third-party"
 	v "github.com/post-services/validations"
-
-	r "github.com/post-services/repository"
-	s "github.com/post-services/services"
 )
 
 func main() {
@@ -19,8 +17,8 @@ func main() {
 	validate := v.GetValidator()
 	imageKit := tp.ImageKitConnection()
 
-	postRepo := r.NewPostRepo(db.Collection("post"))
-	postService := s.NewPostService(postRepo,validate,imageKit)
+	postRepo := p.NewPostRepo(db.Collection("post"))
+	postService := p.NewPostService(postRepo,validate,imageKit)
 	postController := c.NewPostController(postService,postRepo)
 
 	routes.NewRouter(postController)
