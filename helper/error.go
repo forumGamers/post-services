@@ -10,6 +10,7 @@ var (
 	InternalServer = fmt.Errorf("Internal Server Error")
 	InvalidChiper = fmt.Errorf("invalid ciphertext block size")
 	BadGateway = fmt.Errorf("Bad Gateway")
+	Conflict = fmt.Errorf("Conflicts")
 )
 
 func PanicIfError(err error) {

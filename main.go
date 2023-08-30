@@ -5,6 +5,7 @@ import (
 	cfg "github.com/post-services/config"
 	c "github.com/post-services/controller"
 	h "github.com/post-services/helper"
+	l "github.com/post-services/pkg/like"
 	p "github.com/post-services/pkg/post"
 	"github.com/post-services/routes"
 	tp "github.com/post-services/third-party"
@@ -18,8 +19,13 @@ func main() {
 	imageKit := tp.ImageKitConnection()
 
 	postRepo := p.NewPostRepo()
-	postService := p.NewPostService(postRepo,validate,imageKit)
-	postController := c.NewPostController(postService,postRepo)
+	postController := c.NewPostController(p.NewPostService(postRepo,validate,imageKit),postRepo)
 
-	routes.NewRouter(postController)
+	likeRepo := l.NewLikeRepo()
+	likeController := c.NewLikeController(l.NewLikeService(likeRepo,validate),likeRepo)
+
+	routes.NewRouter(
+		postController,
+		likeController,
+	)
 }

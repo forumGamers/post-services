@@ -15,6 +15,7 @@ type routes struct {
 
 func NewRouter(
 	post	c.PostController,
+	like    c.LikeController,
 ) {
 	h.PanicIfError(godotenv.Load())
 
@@ -23,6 +24,7 @@ func NewRouter(
 	groupRoutes := r.router.Group("/api")
 
 	r.postRoutes(groupRoutes,post)
+	r.likeRoutes(groupRoutes,like)
 
 	port := os.Getenv("PORT")
 

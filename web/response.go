@@ -96,6 +96,14 @@ func getErrorMsg(err error) (string,int){
 			return h.ErrInvalidObjectId.Error(),400
 		case h.Forbidden.Error():
 			return h.Forbidden.Error(),403
+		case h.Conflict.Error():
+			return h.Conflict.Error(),409
+		case h.BadGateway.Error():
+			return h.BadGateway.Error(),502
+		case h.InvalidChiper.Error():
+			return h.InvalidChiper.Error(),500
+		case h.InvalidToken.Error():
+			return h.InvalidToken.Error(),401
 		default:
 			return "Internal Server Error",500
 	}
