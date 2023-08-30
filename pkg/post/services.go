@@ -14,6 +14,7 @@ import (
 type PostService interface {
 	ValidatePostInput(data *web.PostForm) error
 	CreatePostPayload(ctx context.Context,data *web.PostForm,user m.User,file tp.UploadFile)(m.Post,error)
+	DeletePostMedia(ctx context.Context,post m.Post,ch chan<- error)
 }
 
 type PostServiceImpl struct {
@@ -71,4 +72,14 @@ func (ps *PostServiceImpl) CreatePostPayload(
 		UpdatedAt: time.Now(),
 		Privacy: data.Privacy,
 	},nil
+}
+
+func (ps *PostServiceImpl) DeletePostMedia(ctx context.Context,post m.Post,ch chan<- error) {
+	if post.Media.Id != "" {
+		go ps.ImageKit.Delete(ctx,post.Media.Id,ch)
+	}else {
+		go func ()  {
+			ch <- nil
+		}()
+	}
 }

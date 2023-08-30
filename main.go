@@ -13,11 +13,11 @@ import (
 
 func main() {
 	h.PanicIfError(godotenv.Load())
-	db := cfg.Connection()
+	cfg.Connection()
 	validate := v.GetValidator()
 	imageKit := tp.ImageKitConnection()
 
-	postRepo := p.NewPostRepo(db.Collection("post"))
+	postRepo := p.NewPostRepo()
 	postService := p.NewPostService(postRepo,validate,imageKit)
 	postController := c.NewPostController(postService,postRepo)
 

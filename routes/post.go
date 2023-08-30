@@ -11,4 +11,5 @@ func (r routes) postRoutes(rg *gin.RouterGroup,pc controller.PostController) {
 	
 	uri.POST("/",md.Authentication ,pc.CreatePost)
 	uri.GET("/:postId",pc.FindById)
+	uri.DELETE("/:postId",md.Authentication,pc.DeletePost)
 }

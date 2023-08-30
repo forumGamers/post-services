@@ -5,7 +5,7 @@ import (
 
 	h "github.com/post-services/helper"
 	m "github.com/post-services/models"
-	"go.mongodb.org/mongo-driver/bson"
+	b "github.com/post-services/pkg/base"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -13,15 +13,17 @@ import (
 type PostRepo interface {
 	Create(ctx context.Context,data *m.Post)
 	FindById(ctx context.Context,id primitive.ObjectID,data *m.Post) error
+	GetSession() (mongo.Session,error)
+	DeleteOne(ctx context.Context,id primitive.ObjectID) error
 }
 
 type PostRepoImpl struct {
-	DB 		*mongo.Collection
+	b.BaseRepoImpl
 }
 
-func NewPostRepo(db *mongo.Collection) PostRepo {
+func NewPostRepo() PostRepo {
 	return &PostRepoImpl{
-		DB: db,
+		BaseRepoImpl: *b.NewBaseRepo(b.GetCollection(b.Post)),
 	}
 }
 
@@ -33,13 +35,13 @@ func (r *PostRepoImpl) Create(ctx context.Context,data *m.Post) {
 }
 
 func (r *PostRepoImpl) FindById(ctx context.Context,id primitive.ObjectID,data *m.Post) error {
-	if err := r.DB.FindOne(ctx,bson.M{
-		"_id":id,
-	}).Decode(data) ; err != nil {
-		if err == mongo.ErrNoDocuments {
-			return h.NotFount
-		}
-		return err
-	}
-	return nil
+	return r.FindOneById(ctx,id,data) 
+}
+
+func (r *PostRepoImpl) GetSession() (mongo.Session,error) {
+	return r.DB.Database().Client().StartSession()
+}
+
+func (r *PostRepoImpl) DeleteOne(ctx context.Context,id primitive.ObjectID) error {
+	return r.DeleteOneById(ctx,id)
 }

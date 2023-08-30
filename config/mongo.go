@@ -10,7 +10,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func Connection() *mongo.Database {
+var DB *mongo.Database
+
+func Connection() {
 
 	uri := os.Getenv("DATABASE_URL")
 
@@ -23,5 +25,5 @@ func Connection() *mongo.Database {
 
 	fmt.Println("connection success")
 
-	return client.Database("Post")
+	DB = client.Database("Post")
 }

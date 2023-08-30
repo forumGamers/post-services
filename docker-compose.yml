@@ -1,0 +1,36 @@
+version: '3'
+services:
+  post-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "4300:4300"
+    depends_on:
+      - database
+      - database-secondary
+      - database-arbiter
+    container_name: post-app
+
+  database:
+    image: mongo:6.0.9-rc1
+    container_name: database
+    ports:
+      - "27017:27017"
+    command: mongod --replSet db-dev
+
+  database-secondary:
+    image: mongo:6.0.9-rc1
+    ports:
+      - "27018:27017"
+    command: mongod --replSet db-dev
+    container_name: database-secondary
+
+  database-arbiter:
+    image: mongo:6.0.9-rc1
+    ports:
+      - "27019:27017"
+    command: mongod --replSet db-dev
+    container_name: database-arbiter
