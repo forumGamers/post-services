@@ -43,6 +43,7 @@ func (ps *CommentServiceImpl) CreatePayload(data web.CommentForm, postId primiti
 }
 
 func (ps *CommentServiceImpl) AuthorizeDeleteComment(data m.Comment, user m.User) error {
+	//nanti yang punya post juga bisa hapus
 	if user.Id != data.UserId || user.Role != "Admin" {
 		return h.AccessDenied
 	}

@@ -13,6 +13,7 @@ import (
 type ReplyService interface {
 	ValidateReply(data *web.CommentForm) error
 	CreatePayload(data web.CommentForm, commentId primitive.ObjectID, userId int) m.ReplyComment
+	AuthorizeDeleteReply(data m.ReplyComment, user m.User) error
 }
 
 type ReplyServiceImpl struct {
@@ -39,4 +40,12 @@ func (rs *ReplyServiceImpl) CreatePayload(data web.CommentForm, commentId primit
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+}
+
+func (rs *ReplyServiceImpl) AuthorizeDeleteReply(data m.ReplyComment, user m.User) error {
+	//nanti yang punya post juga bisa hapus
+	if user.Id != data.UserId || user.Role != "Admin" {
+		return h.AccessDenied
+	}
+	return nil
 }

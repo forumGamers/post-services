@@ -56,6 +56,8 @@ func (pc *CommentControllerImpl) CreateComment(c *gin.Context) {
 		return
 	}
 
+	comment.Text = h.Decryption(comment.Text)
+
 	web.WriteResponse(c, web.WebResponse{
 		Code:    201,
 		Message: "success",

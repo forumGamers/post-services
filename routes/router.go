@@ -14,7 +14,7 @@ import (
 type routes struct {
 	router *gin.Engine
 }
-
+//add limiter
 func NewRouter(
 	post c.PostController,
 	like c.LikeController,

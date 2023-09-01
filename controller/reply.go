@@ -14,6 +14,7 @@ import (
 
 type ReplyController interface {
 	AddReply(c *gin.Context)
+	DeleteReply(c *gin.Context)
 }
 
 type ReplyControllerImpl struct {
@@ -55,9 +56,40 @@ func (rc *ReplyControllerImpl) AddReply(c *gin.Context) {
 		return
 	}
 
+	reply.Text = h.Decryption(reply.Text)
+
 	web.WriteResponse(c, web.WebResponse{
 		Code:    201,
 		Message: "success",
 		Data:    reply,
+	})
+}
+
+func (rc *ReplyControllerImpl) DeleteReply(c *gin.Context) {
+	replyId, err := primitive.ObjectIDFromHex(c.Param("replyId"))
+	if err != nil {
+		web.AbortHttp(c, h.ErrInvalidObjectId)
+		return
+	}
+
+	var reply m.ReplyComment
+	if err := rc.Repo.FindById(context.Background(), replyId, &reply); err != nil {
+		web.AbortHttp(c, err)
+		return
+	}
+
+	if err := rc.Service.AuthorizeDeleteReply(reply, h.GetUser(c)); err != nil {
+		web.AbortHttp(c, err)
+		return
+	}
+
+	if err := rc.Repo.DeleteOne(context.Background(), replyId); err != nil {
+		web.AbortHttp(c, err)
+		return
+	}
+
+	web.WriteResponse(c, web.WebResponse{
+		Code:    200,
+		Message: "success",
 	})
 }

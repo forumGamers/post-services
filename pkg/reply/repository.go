@@ -12,6 +12,8 @@ import (
 type ReplyRepo interface {
 	DeleteReplyByPostId(ctx context.Context, postId primitive.ObjectID) error
 	CreateReply(ctx context.Context, data *m.ReplyComment) error
+	FindById(ctx context.Context, id primitive.ObjectID, data *m.ReplyComment) error
+	DeleteOne(ctx context.Context, id primitive.ObjectID) error
 }
 
 type ReplyRepoImpl struct {
@@ -61,4 +63,12 @@ func (r *ReplyRepoImpl) CreateReply(ctx context.Context, data *m.ReplyComment) e
 	}
 	data.Id = result
 	return nil
+}
+
+func (r *ReplyRepoImpl) FindById(ctx context.Context, id primitive.ObjectID, data *m.ReplyComment) error {
+	return r.FindOneById(ctx, id, data)
+}
+
+func (r *ReplyRepoImpl) DeleteOne(ctx context.Context, id primitive.ObjectID) error {
+	return r.DeleteOneById(ctx, id)
 }
