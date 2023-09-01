@@ -14,26 +14,27 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type LikeController interface{
+type LikeController interface {
 	LikePost(c *gin.Context)
+	UnlikePost(c *gin.Context)
 }
 
 type LikeControllerImpl struct {
 	Service l.LikeService
-	Repo 	l.LikeRepo
+	Repo    l.LikeRepo
 }
 
-func NewLikeController(service l.LikeService,repo l.LikeRepo) LikeController {
+func NewLikeController(service l.LikeService, repo l.LikeRepo) LikeController {
 	return &LikeControllerImpl{
 		Service: service,
-		Repo: repo,
+		Repo:    repo,
 	}
 }
 
 func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
-	postId,err := primitive.ObjectIDFromHex(c.Param("postId"))
+	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
 	if err != nil {
-		web.AbortHttp(c,h.ErrInvalidObjectId)
+		web.AbortHttp(c, h.ErrInvalidObjectId)
 		return
 	}
 
@@ -42,16 +43,16 @@ func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 	id := h.GetUser(c).Id
 
 	wg.Add(2)
-	go func ()  {
+	go func() {
 		defer wg.Done()
 		var post m.Post
-		errCh <- b.NewBaseRepo(b.GetCollection(b.Post)).FindOneById(context.Background(),postId,&post)
+		errCh <- b.NewBaseRepo(b.GetCollection(b.Post)).FindOneById(context.Background(), postId, &post)
 	}()
 
-	go func ()  {
+	go func() {
 		defer wg.Done()
 		var like m.Like
-		if err := lc.Repo.GetLikesByUserIdAndPostId(context.Background(),postId,id,&like) ; err != nil {
+		if err := lc.Repo.GetLikesByUserIdAndPostId(context.Background(), postId, id, &like); err != nil {
 			if err == h.NotFount {
 				errCh <- nil
 				return
@@ -62,33 +63,59 @@ func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 		errCh <- h.Conflict
 	}()
 
-	for i := 0 ; i < 2 ; i++ {
+	for i := 0; i < 2; i++ {
 		select {
-			case err := <- errCh : 
-				if err != nil {
-					web.AbortHttp(c,err)
-					return
-				}
+		case err := <-errCh:
+			if err != nil {
+				web.AbortHttp(c, err)
+				return
+			}
 		}
 	}
 	wg.Wait()
 
 	like := m.Like{
-		UserId: id,
-		PostId: postId,
+		UserId:    id,
+		PostId:    postId,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	result,err := lc.Repo.AddLikes(context.Background(),&like)
+	result, err := lc.Repo.AddLikes(context.Background(), &like)
 	if err != nil {
-		web.AbortHttp(c,err)
+		web.AbortHttp(c, err)
 		return
 	}
 
 	like.Id = result
-	web.WriteResponse(c,web.WebResponse{
-		Code: 201,
+	web.WriteResponse(c, web.WebResponse{
+		Code:    201,
 		Message: "success",
-		Data: like,
+		Data:    like,
+	})
+}
+
+func (lc *LikeControllerImpl) UnlikePost(c *gin.Context) {
+	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
+	if err != nil {
+		web.AbortHttp(c, h.ErrInvalidObjectId)
+		return
+	}
+
+	userId := h.GetUser(c).Id
+	var like m.Like
+
+	if err := lc.Repo.GetLikesByUserIdAndPostId(context.Background(), postId, userId, &like); err != nil {
+		web.AbortHttp(c, err)
+		return
+	}
+
+	if err := lc.Repo.DeleteLike(context.Background(), postId, userId); err != nil {
+		web.AbortHttp(c, err)
+		return
+	}
+
+	web.WriteResponse(c, web.WebResponse{
+		Code:    200,
+		Message: "success",
 	})
 }

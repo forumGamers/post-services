@@ -34,3 +34,5 @@ func(r *LikeRepoMockImpl) AddLikes(ctx context.Context,like *m.Like) (primitive.
 	}
 	return primitive.NewObjectID(),nil
 }
+
+func(r *LikeRepoMockImpl) DeleteLike(ctx context.Context, postId primitive.ObjectID, userId int) error { return nil }

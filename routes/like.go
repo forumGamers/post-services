@@ -6,8 +6,9 @@ import (
 	md "github.com/post-services/middlewares"
 )
 
-func (r routes) likeRoutes(rg *gin.RouterGroup,lc controller.LikeController) {
+func (r routes) likeRoutes(rg *gin.RouterGroup, lc controller.LikeController) {
 	uri := rg.Group("/like")
 
-	uri.POST("/:postId",md.Authentication,lc.LikePost)
+	uri.POST("/:postId", md.Authentication, lc.LikePost)
+	uri.DELETE("/:postId", md.Authentication, lc.UnlikePost)
 }

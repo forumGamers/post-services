@@ -12,9 +12,10 @@ import (
 )
 
 type LikeRepo interface {
-	DeletePostLikes(ctx context.Context,postId primitive.ObjectID) error
-	GetLikesByUserIdAndPostId(ctx context.Context,postId primitive.ObjectID,userId int,result *m.Like) error
-	AddLikes(ctx context.Context,like *m.Like) (primitive.ObjectID,error)
+	DeletePostLikes(ctx context.Context, postId primitive.ObjectID) error
+	GetLikesByUserIdAndPostId(ctx context.Context, postId primitive.ObjectID, userId int, result *m.Like) error
+	AddLikes(ctx context.Context, like *m.Like) (primitive.ObjectID, error)
+	DeleteLike(ctx context.Context, postId primitive.ObjectID, userId int) error
 }
 
 type LikeRepoImpl struct {
@@ -27,15 +28,15 @@ func NewLikeRepo() LikeRepo {
 	}
 }
 
-func (r *LikeRepoImpl) DeletePostLikes(ctx context.Context,postId primitive.ObjectID) error {
-	return r.DeleteMany(ctx,bson.M{ "postId": postId })
+func (r *LikeRepoImpl) DeletePostLikes(ctx context.Context, postId primitive.ObjectID) error {
+	return r.DeleteMany(ctx, bson.M{"postId": postId})
 }
 
-func(r *LikeRepoImpl) GetLikesByUserIdAndPostId(ctx context.Context,postId primitive.ObjectID,userId int,result *m.Like) error {
-	if err := r.DB.FindOne(ctx,bson.M{
-		"userId":userId,
-		"postId":postId,
-	}).Decode(result) ; err != nil {
+func (r *LikeRepoImpl) GetLikesByUserIdAndPostId(ctx context.Context, postId primitive.ObjectID, userId int, result *m.Like) error {
+	if err := r.DB.FindOne(ctx, bson.M{
+		"userId": userId,
+		"postId": postId,
+	}).Decode(result); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return h.NotFount
 		}
@@ -44,10 +45,23 @@ func(r *LikeRepoImpl) GetLikesByUserIdAndPostId(ctx context.Context,postId primi
 	return nil
 }
 
-func (r *LikeRepoImpl) AddLikes(ctx context.Context,like *m.Like) (primitive.ObjectID,error) {
-	result,err := r.DB.InsertOne(ctx,like)
+func (r *LikeRepoImpl) AddLikes(ctx context.Context, like *m.Like) (primitive.ObjectID, error) {
+	result, err := r.DB.InsertOne(ctx, like)
 	if err != nil {
 		return primitive.NilObjectID, err
 	}
 	return result.InsertedID.(primitive.ObjectID), nil
+}
+
+func (r *LikeRepoImpl) DeleteLike(ctx context.Context, postId primitive.ObjectID, userId int) error {
+	if _, err := r.DB.DeleteOne(ctx, bson.M{
+		"postId": postId,
+		"userId": userId,
+	}); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return h.NotFount
+		}
+		return err
+	}
+	return nil
 }
