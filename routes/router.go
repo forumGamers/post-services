@@ -19,6 +19,7 @@ func NewRouter(
 	post c.PostController,
 	like c.LikeController,
 	comment c.CommentController,
+	reply c.ReplyController,
 ) {
 	h.PanicIfError(godotenv.Load())
 
@@ -34,6 +35,7 @@ func NewRouter(
 	r.postRoutes(groupRoutes, post)
 	r.likeRoutes(groupRoutes, like)
 	r.commentRoutes(groupRoutes, comment)
+	r.replyRoutes(groupRoutes, reply)
 
 	port := os.Getenv("PORT")
 

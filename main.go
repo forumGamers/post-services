@@ -8,6 +8,7 @@ import (
 	com "github.com/post-services/pkg/comment"
 	l "github.com/post-services/pkg/like"
 	p "github.com/post-services/pkg/post"
+	r "github.com/post-services/pkg/reply"
 	"github.com/post-services/routes"
 	tp "github.com/post-services/third-party"
 	v "github.com/post-services/validations"
@@ -28,9 +29,13 @@ func main() {
 	commentRepo := com.NewCommentRepo()
 	commentController := c.NewCommentController(com.NewCommentService(commentRepo, validate), commentRepo)
 
+	replyRepo := r.NewReplyRepo()
+	replyController := c.NewReplyController(r.NewReplyService(replyRepo, validate), replyRepo)
+
 	routes.NewRouter(
 		postController,
 		likeController,
 		commentController,
+		replyController,
 	)
 }
