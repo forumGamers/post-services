@@ -14,6 +14,7 @@ import (
 
 type CommentController interface {
 	CreateComment(c *gin.Context)
+	DeleteComment(c *gin.Context)
 }
 
 type CommentControllerImpl struct {
@@ -59,5 +60,34 @@ func (pc *CommentControllerImpl) CreateComment(c *gin.Context) {
 		Code:    201,
 		Message: "success",
 		Data:    comment,
+	})
+}
+
+func (pc *CommentControllerImpl) DeleteComment(c *gin.Context) {
+	commentId, err := primitive.ObjectIDFromHex(c.Param("commentId"))
+	if err != nil {
+		web.AbortHttp(c, h.ErrInvalidObjectId)
+		return
+	}
+
+	var comment m.Comment
+	if err := pc.Repo.FindById(context.Background(), commentId, &comment); err != nil {
+		web.AbortHttp(c, err)
+		return
+	}
+
+	if err := pc.Service.AuthorizeDeleteComment(comment, h.GetUser(c)); err != nil {
+		web.AbortHttp(c, err)
+		return
+	}
+
+	if err := pc.Repo.DeleteOne(context.Background(), commentId); err != nil {
+		web.AbortHttp(c, err)
+		return
+	}
+
+	web.WriteResponse(c, web.WebResponse{
+		Code:    200,
+		Message: "success",
 	})
 }

@@ -10,4 +10,5 @@ func (r routes) commentRoutes(rg *gin.RouterGroup, pc controller.CommentControll
 	uri := rg.Group("/comment")
 
 	uri.POST("/:postId", md.Authentication, pc.CreateComment)
+	uri.DELETE("/:commentId", md.Authentication, pc.DeleteComment)
 }

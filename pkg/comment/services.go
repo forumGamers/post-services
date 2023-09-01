@@ -13,6 +13,7 @@ import (
 type CommentService interface {
 	ValidateComment(data *web.CommentForm) error
 	CreatePayload(data web.CommentForm, postId primitive.ObjectID, userId int) m.Comment
+	AuthorizeDeleteComment(data m.Comment, user m.User) error
 }
 
 type CommentServiceImpl struct {
@@ -39,4 +40,11 @@ func (ps *CommentServiceImpl) CreatePayload(data web.CommentForm, postId primiti
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+}
+
+func (ps *CommentServiceImpl) AuthorizeDeleteComment(data m.Comment, user m.User) error {
+	if user.Id != data.UserId || user.Role != "Admin" {
+		return h.AccessDenied
+	}
+	return nil
 }

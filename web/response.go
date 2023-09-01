@@ -7,18 +7,17 @@ import (
 )
 
 type WebResponse struct {
-	Code   	int    		`json:"code"`
-	Status 	string 		`json:"status"`
-	Message string		`json:"message"`
-	Data   	any    		`json:"data"`
+	Code    int    `json:"code"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Data    any    `json:"data"`
 }
 
 type HttpError struct {
-	Error 	error
-	Code  	int
+	Error   error
+	Code    int
 	Message string
 }
-
 
 func getStatusMessage(status int) string {
 	statusMessages := map[int]string{
@@ -88,60 +87,61 @@ func getStatusMessage(status int) string {
 	return statusMessages[status]
 }
 
-func getErrorMsg(err error) (string,int){
+func getErrorMsg(err error) (string, int) {
 	switch err.Error() {
-		case "Data not found":
-			return err.Error(), 404
-		case h.ErrInvalidObjectId.Error():
-			return h.ErrInvalidObjectId.Error(),400
-		case h.Forbidden.Error():
-			return h.Forbidden.Error(),403
-		case h.Conflict.Error():
-			return h.Conflict.Error(),409
-		case h.BadGateway.Error():
-			return h.BadGateway.Error(),502
-		case h.InvalidChiper.Error():
-			return h.InvalidChiper.Error(),500
-		case h.InvalidToken.Error():
-			return h.InvalidToken.Error(),401
-		default:
-			return "Internal Server Error",500
+	case "Data not found":
+		return err.Error(), 404
+	case h.ErrInvalidObjectId.Error():
+		return h.ErrInvalidObjectId.Error(), 400
+	case h.Forbidden.Error():
+		return h.Forbidden.Error(), 403
+	case h.Conflict.Error():
+		return h.Conflict.Error(), 409
+	case h.BadGateway.Error():
+		return h.BadGateway.Error(), 502
+	case h.InvalidChiper.Error():
+		return h.InvalidChiper.Error(), 500
+	case h.InvalidToken.Error():
+		return h.InvalidToken.Error(), 401
+	case h.AccessDenied.Error():
+		return h.AccessDenied.Error(), 401
+	default:
+		return "Internal Server Error", 500
 	}
 }
 
-
-func WriteResponse(c *gin.Context,response WebResponse) {
+func WriteResponse(c *gin.Context, response WebResponse) {
 	response.Status = getStatusMessage(response.Code)
-	c.JSON(response.Code,response)
+	c.JSON(response.Code, response)
 }
 
-func AbortHttp(c *gin.Context,err error){
-	msg,code := getErrorMsg(err)
+func AbortHttp(c *gin.Context, err error) {
+	msg, code := getErrorMsg(err)
 
-	c.AbortWithStatusJSON(code,WebResponse{
-		Status:getStatusMessage(code),
-		Code: code,
+	c.AbortWithStatusJSON(code, WebResponse{
+		Status:  getStatusMessage(code),
+		Code:    code,
 		Message: msg,
 	})
 }
 
-func CustomMsgAbortHttp(c *gin.Context,message string,code int) {
-	c.AbortWithStatusJSON(code,WebResponse{
-		Status:getStatusMessage(code),
-		Code: code,
+func CustomMsgAbortHttp(c *gin.Context, message string, code int) {
+	c.AbortWithStatusJSON(code, WebResponse{
+		Status:  getStatusMessage(code),
+		Code:    code,
 		Message: message,
 	})
 }
 
-func HttpValidationErr(c *gin.Context,err error) {
+func HttpValidationErr(c *gin.Context, err error) {
 	errMap := make(map[string]string)
-	for _,field := range err.(validator.ValidationErrors) {
+	for _, field := range err.(validator.ValidationErrors) {
 		errMap[field.Field()] = field.Error()
 	}
 
-	c.AbortWithStatusJSON(400,WebResponse{
+	c.AbortWithStatusJSON(400, WebResponse{
 		Status: getStatusMessage(400),
-		Code: 400,
-		Data: errMap,
+		Code:   400,
+		Data:   errMap,
 	})
 }
