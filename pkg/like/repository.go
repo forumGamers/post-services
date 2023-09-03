@@ -13,9 +13,9 @@ import (
 
 type LikeRepo interface {
 	DeletePostLikes(ctx context.Context, postId primitive.ObjectID) error
-	GetLikesByUserIdAndPostId(ctx context.Context, postId primitive.ObjectID, userId int, result *m.Like) error
+	GetLikesByUserIdAndPostId(ctx context.Context, postId primitive.ObjectID, userId string, result *m.Like) error
 	AddLikes(ctx context.Context, like *m.Like) (primitive.ObjectID, error)
-	DeleteLike(ctx context.Context, postId primitive.ObjectID, userId int) error
+	DeleteLike(ctx context.Context, postId primitive.ObjectID, userId string) error
 }
 
 type LikeRepoImpl struct {
@@ -32,7 +32,7 @@ func (r *LikeRepoImpl) DeletePostLikes(ctx context.Context, postId primitive.Obj
 	return r.DeleteMany(ctx, bson.M{"postId": postId})
 }
 
-func (r *LikeRepoImpl) GetLikesByUserIdAndPostId(ctx context.Context, postId primitive.ObjectID, userId int, result *m.Like) error {
+func (r *LikeRepoImpl) GetLikesByUserIdAndPostId(ctx context.Context, postId primitive.ObjectID, userId string, result *m.Like) error {
 	if err := r.DB.FindOne(ctx, bson.M{
 		"userId": userId,
 		"postId": postId,
@@ -53,7 +53,7 @@ func (r *LikeRepoImpl) AddLikes(ctx context.Context, like *m.Like) (primitive.Ob
 	return result.InsertedID.(primitive.ObjectID), nil
 }
 
-func (r *LikeRepoImpl) DeleteLike(ctx context.Context, postId primitive.ObjectID, userId int) error {
+func (r *LikeRepoImpl) DeleteLike(ctx context.Context, postId primitive.ObjectID, userId string) error {
 	if _, err := r.DB.DeleteOne(ctx, bson.M{
 		"postId": postId,
 		"userId": userId,

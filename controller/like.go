@@ -40,7 +40,7 @@ func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 
 	var wg sync.WaitGroup
 	errCh := make(chan error)
-	id := h.GetUser(c).Id
+	id := h.GetUser(c).UUID
 
 	wg.Add(2)
 	go func() {
@@ -101,7 +101,7 @@ func (lc *LikeControllerImpl) UnlikePost(c *gin.Context) {
 		return
 	}
 
-	userId := h.GetUser(c).Id
+	userId := h.GetUser(c).UUID
 	var like m.Like
 
 	if err := lc.Repo.GetLikesByUserIdAndPostId(context.Background(), postId, userId, &like); err != nil {

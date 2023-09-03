@@ -43,6 +43,8 @@ func GetUser(c *gin.Context) m.User {
 			user.Point = int(val.(float64))
 		case "experience":
 			user.Exp = int(val.(float64))
+		case "UUID":
+			user.UUID = val.(string)
 		}
 	}
 	return user

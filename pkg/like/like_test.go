@@ -30,7 +30,7 @@ func TestGetLikesByUserIdAndPostId_NotFound(t *testing.T) {
 	}()
 	ctx := context.Background()
 	postId, _ := primitive.ObjectIDFromHex("64e2ff258c78c4a3ff840e9d")
-	userId := 1
+	userId := "1"
 	var data m.Like
 	mockRepo.Mock.On("GetLikesByUserIdAndPostId", ctx, postId, userId, &data).Return(h.NotFount)
 
@@ -46,7 +46,7 @@ func TestGetLikesByUserIdAndPostId_Success(t *testing.T) {
 	}()
 	ctx := context.Background()
 	postId, _ := primitive.ObjectIDFromHex("64e2ff258c78c4a3ff840e9d")
-	userId := 1
+	userId := "1"
 	var data m.Like
 	mockRepo.Mock.On("GetLikesByUserIdAndPostId", ctx, postId, userId, &data).Return(nil)
 

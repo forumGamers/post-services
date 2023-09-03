@@ -17,6 +17,8 @@ import (
 func main() {
 	h.PanicIfError(godotenv.Load())
 	cfg.Connection()
+	cfg.BrokerConnection()
+
 	validate := v.GetValidator()
 	imageKit := tp.ImageKitConnection()
 

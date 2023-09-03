@@ -12,5 +12,6 @@ type User struct {
 	Role        string `json:"role"`
 	Point       int    `json:"point"`
 	Exp         int    `json:"exp"`
-	Image		string `json:"image"`
+	Image       string `json:"image"`
+	UUID        string `json:"UUID"`
 }

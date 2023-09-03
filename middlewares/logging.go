@@ -14,7 +14,7 @@ func Logging(c *gin.Context) {
 	defer func() {
 		if _, err := b.NewBaseRepo(b.GetCollection(b.Log)).Create(context.Background(), m.Log{
 			Path:         c.Request.URL.Path,
-			UserId:       h.GetUser(c).Id,
+			UserId:       h.GetUser(c).UUID,
 			Method:       c.Request.Method,
 			StatusCode:   c.Writer.Status(),
 			Origin:       c.Request.Header.Get("Origin"),

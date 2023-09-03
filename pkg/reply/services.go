@@ -12,7 +12,7 @@ import (
 
 type ReplyService interface {
 	ValidateReply(data *web.CommentForm) error
-	CreatePayload(data web.CommentForm, commentId primitive.ObjectID, userId int) m.ReplyComment
+	CreatePayload(data web.CommentForm, commentId primitive.ObjectID, userId string) m.ReplyComment
 	AuthorizeDeleteReply(data m.ReplyComment, user m.User) error
 }
 
@@ -32,7 +32,7 @@ func (rs *ReplyServiceImpl) ValidateReply(data *web.CommentForm) error {
 	return rs.Validate.Struct(data)
 }
 
-func (rs *ReplyServiceImpl) CreatePayload(data web.CommentForm, commentId primitive.ObjectID, userId int) m.ReplyComment {
+func (rs *ReplyServiceImpl) CreatePayload(data web.CommentForm, commentId primitive.ObjectID, userId string) m.ReplyComment {
 	return m.ReplyComment{
 		UserId:    userId,
 		Text:      h.Encryption(data.Text),
@@ -44,7 +44,7 @@ func (rs *ReplyServiceImpl) CreatePayload(data web.CommentForm, commentId primit
 
 func (rs *ReplyServiceImpl) AuthorizeDeleteReply(data m.ReplyComment, user m.User) error {
 	//nanti yang punya post juga bisa hapus
-	if user.Id != data.UserId || user.Role != "Admin" {
+	if user.UUID != data.UserId || user.Role != "Admin" {
 		return h.AccessDenied
 	}
 	return nil

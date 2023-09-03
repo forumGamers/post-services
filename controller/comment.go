@@ -50,7 +50,7 @@ func (pc *CommentControllerImpl) CreateComment(c *gin.Context) {
 		return
 	}
 
-	comment := pc.Service.CreatePayload(data, postId, h.GetUser(c).Id)
+	comment := pc.Service.CreatePayload(data, postId, h.GetUser(c).UUID)
 	if err := pc.Repo.CreateComment(context.Background(), &comment); err != nil {
 		web.AbortHttp(c, err)
 		return

@@ -50,7 +50,7 @@ func (rc *ReplyControllerImpl) AddReply(c *gin.Context) {
 		return
 	}
 
-	reply := rc.Service.CreatePayload(data, commentId, h.GetUser(c).Id)
+	reply := rc.Service.CreatePayload(data, commentId, h.GetUser(c).UUID)
 	if err := rc.Repo.CreateReply(context.Background(), &reply); err != nil {
 		web.AbortHttp(c, err)
 		return

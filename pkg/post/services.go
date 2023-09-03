@@ -60,7 +60,7 @@ func (ps *PostServiceImpl) CreatePostPayload(
 	}
 
 	return m.Post{
-		UserId: user.Id,
+		UserId: user.UUID,
 		Text:   h.Encryption(data.Text),
 		Media: m.Media{
 			Url:  result.Url,

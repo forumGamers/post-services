@@ -12,7 +12,7 @@ import (
 
 type CommentService interface {
 	ValidateComment(data *web.CommentForm) error
-	CreatePayload(data web.CommentForm, postId primitive.ObjectID, userId int) m.Comment
+	CreatePayload(data web.CommentForm, postId primitive.ObjectID, userId string) m.Comment
 	AuthorizeDeleteComment(data m.Comment, user m.User) error
 }
 
@@ -32,7 +32,7 @@ func (ps *CommentServiceImpl) ValidateComment(data *web.CommentForm) error {
 	return ps.Validate.Struct(data)
 }
 
-func (ps *CommentServiceImpl) CreatePayload(data web.CommentForm, postId primitive.ObjectID, userId int) m.Comment {
+func (ps *CommentServiceImpl) CreatePayload(data web.CommentForm, postId primitive.ObjectID, userId string) m.Comment {
 	return m.Comment{
 		UserId:    userId,
 		Text:      h.Encryption(data.Text),
@@ -44,7 +44,7 @@ func (ps *CommentServiceImpl) CreatePayload(data web.CommentForm, postId primiti
 
 func (ps *CommentServiceImpl) AuthorizeDeleteComment(data m.Comment, user m.User) error {
 	//nanti yang punya post juga bisa hapus
-	if user.Id != data.UserId || user.Role != "Admin" {
+	if user.UUID != data.UserId || user.Role != "Admin" {
 		return h.AccessDenied
 	}
 	return nil

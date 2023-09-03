@@ -25,62 +25,62 @@ type PostController interface {
 }
 
 type PostControllerImpl struct {
-	Service		p.PostService
-	Repo		p.PostRepo
+	Service p.PostService
+	Repo    p.PostRepo
 }
 
-func NewPostController(service p.PostService,repo p.PostRepo) PostController {
+func NewPostController(service p.PostService, repo p.PostRepo) PostController {
 	return &PostControllerImpl{
 		Service: service,
-		Repo: repo,
+		Repo:    repo,
 	}
 }
 
-func (pc *PostControllerImpl) CreatePost(c *gin.Context){
+func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 	var form web.PostForm
 	c.ShouldBind(&form)
 
-	if err := pc.Service.ValidatePostInput(&form) ; err != nil {
-		web.HttpValidationErr(c,err)
+	if err := pc.Service.ValidatePostInput(&form); err != nil {
+		web.HttpValidationErr(c, err)
 		return
 	}
 
 	user := h.GetUser(c)
-	fileInfo := struct{
-		Media []byte
+	fileInfo := struct {
+		Media      []byte
 		FolderName string
-		FileName string
-		SavedFile *os.File
+		FileName   string
+		SavedFile  *os.File
 	}{}
 
 	if form.File != nil {
 		var err error = nil
-		fileInfo.Media,fileInfo.SavedFile ,err = h.SaveUploadedFile(c,form.File)
+		fileInfo.Media, fileInfo.SavedFile, err = h.SaveUploadedFile(c, form.File)
 		if err != nil {
 			panic(err.Error())
 		}
 
-		fileInfo.FolderName,err = h.CheckFileType(form.File)
+		fileInfo.FolderName, err = h.CheckFileType(form.File)
 		if err != nil {
 			panic(err.Error())
 		}
 
-		fileInfo.FolderName = "post_"+fileInfo.FolderName
+		fileInfo.FolderName = "post_" + fileInfo.FolderName
 		fileInfo.FileName = form.File.Filename
 	}
 
-	data,err := pc.Service.CreatePostPayload(context.Background(),&form,user,tp.UploadFile{
-		Data: fileInfo.Media,
+	data, err := pc.Service.CreatePostPayload(context.Background(), &form, user, tp.UploadFile{
+		Data:   fileInfo.Media,
 		Folder: fileInfo.FolderName,
-		Name: fileInfo.FileName,
+		Name:   fileInfo.FileName,
 	})
 
 	if err != nil {
-		web.AbortHttp(c,err)
+		web.AbortHttp(c, err)
 		return
 	}
 
-	pc.Repo.Create(context.Background(),&data)
+	pc.Repo.Create(context.Background(), &data)
 
 	if form.File != nil {
 		fileInfo.SavedFile.Close()
@@ -89,82 +89,83 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context){
 
 	data.Text = h.Decryption(data.Text)
 
-	web.WriteResponse(c,web.WebResponse{
-		Code: 201,
+	web.WriteResponse(c, web.WebResponse{
+		Code:    201,
 		Message: "Success",
-		Data: data,
+		Data:    data,
 	})
 }
 
-func (pc *PostControllerImpl) DeletePost(c *gin.Context){
+func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	//tes lagi nanti kalo udh buat mongo atlas
-	postId,err := primitive.ObjectIDFromHex(c.Param("postId"))
+	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
 	if err != nil {
-		web.AbortHttp(c,h.ErrInvalidObjectId)
+		web.AbortHttp(c, h.ErrInvalidObjectId)
 		return
 	}
-	
+
 	var data m.Post
-	if err := pc.Repo.FindById(context.Background(),postId,&data) ; err != nil {
-		web.AbortHttp(c,err)
+	if err := pc.Repo.FindById(context.Background(), postId, &data); err != nil {
+		web.AbortHttp(c, err)
 		return
 	}
 
 	user := h.GetUser(c)
 
-	if data.UserId != user.Id || user.Role != "Admin" {
-		web.AbortHttp(c,h.Forbidden)
+	if data.UserId != user.UUID || user.Role != "Admin" {
+		web.AbortHttp(c, h.Forbidden)
 		return
 	}
 
-	session,err := pc.Repo.GetSession()
+	session, err := pc.Repo.GetSession()
 	if err != nil {
-		web.AbortHttp(c,err)
+		web.AbortHttp(c, err)
 		return
 	}
 
 	defer session.EndSession(context.Background())
 
-	if err := session.StartTransaction() ; err != nil {
-		web.AbortHttp(c,h.Forbidden)
+	if err := session.StartTransaction(); err != nil {
+		web.AbortHttp(c, h.Forbidden)
 		return
 	}
 
-	ctx := mongo.NewSessionContext(context.Background(),session)
+	ctx := mongo.NewSessionContext(context.Background(), session)
 	var wg sync.WaitGroup
 	errCh := make(chan error)
-	filter := bson.M{"postId":data.Id}
+	filter := bson.M{"postId": data.Id}
 	wg.Add(6)
-	runRountine := func (f func())  {
+	runRountine := func(f func()) {
 		defer wg.Done()
 		f()
 	}
 
 	go runRountine(func() {
-		pc.Service.DeletePostMedia(context.Background(),data,errCh)
+		pc.Service.DeletePostMedia(context.Background(), data, errCh)
 	})
 	go runRountine(func() {
-		errCh <- b.NewBaseRepo(b.GetCollection(b.Like)).DeleteMany(ctx,filter)
+		errCh <- b.NewBaseRepo(b.GetCollection(b.Like)).DeleteMany(ctx, filter)
 	})
 	go runRountine(func() {
-		errCh <- b.NewBaseRepo(b.GetCollection(b.Comment)).DeleteMany(ctx,filter)
+		errCh <- b.NewBaseRepo(b.GetCollection(b.Comment)).DeleteMany(ctx, filter)
 	})
 	go runRountine(func() {
-		errCh <- pc.Repo.DeleteOne(ctx,data.Id)
+		errCh <- pc.Repo.DeleteOne(ctx, data.Id)
 	})
 	go runRountine(func() {
-		errCh <- b.NewBaseRepo(b.GetCollection(b.Share)).DeleteMany(ctx,filter)
+		errCh <- b.NewBaseRepo(b.GetCollection(b.Share)).DeleteMany(ctx, filter)
 	})
 	go runRountine(func() {
-		errCh <- reply.NewReplyRepo().DeleteReplyByPostId(ctx,data.Id)
+		errCh <- reply.NewReplyRepo().DeleteReplyByPostId(ctx, data.Id)
 	})
 
-	for i := 0 ; i < 6 ; i++ {
+	for i := 0; i < 6; i++ {
 		select {
-			case err := <- errCh : {
+		case err := <-errCh:
+			{
 				if err != nil {
 					session.AbortTransaction(ctx)
-					web.AbortHttp(c,err)
+					web.AbortHttp(c, err)
 					return
 				}
 			}
@@ -172,36 +173,36 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context){
 	}
 
 	wg.Wait()
-	if err := session.CommitTransaction(ctx) ; err != nil {
+	if err := session.CommitTransaction(ctx); err != nil {
 		session.AbortTransaction(ctx)
-		web.AbortHttp(c,err)
+		web.AbortHttp(c, err)
 		return
 	}
 
-	web.WriteResponse(c,web.WebResponse{
+	web.WriteResponse(c, web.WebResponse{
 		Message: "success",
-		Code: 200,
+		Code:    200,
 	})
 }
 
-func (pc *PostControllerImpl) FindById(c *gin.Context){
-	postId,err := primitive.ObjectIDFromHex(c.Param("postId"))
+func (pc *PostControllerImpl) FindById(c *gin.Context) {
+	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
 	if err != nil {
-		web.AbortHttp(c,h.ErrInvalidObjectId)
+		web.AbortHttp(c, h.ErrInvalidObjectId)
 		return
 	}
 
 	var data m.Post
-	if err := pc.Repo.FindById(context.Background(),postId,&data) ; err != nil {
-		web.AbortHttp(c,err)
+	if err := pc.Repo.FindById(context.Background(), postId, &data); err != nil {
+		web.AbortHttp(c, err)
 		return
 	}
 
 	data.Text = h.Decryption(data.Text)
 
-	web.WriteResponse(c,web.WebResponse{
-		Data: data,
+	web.WriteResponse(c, web.WebResponse{
+		Data:    data,
 		Message: "Success",
-		Code: 200,
+		Code:    200,
 	})
 }
