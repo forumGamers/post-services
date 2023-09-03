@@ -19,6 +19,11 @@ type HttpError struct {
 	Message string
 }
 
+type InputError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
 func getStatusMessage(status int) string {
 	statusMessages := map[int]string{
 		100: "Continue",
@@ -133,10 +138,37 @@ func CustomMsgAbortHttp(c *gin.Context, message string, code int) {
 	})
 }
 
+func MsgTag(f validator.FieldError) string {
+	switch f.Tag() {
+	case "required":
+		return "this field is required"
+	case "email":
+		return "invalid email format"
+	case "oneof":
+		switch true {
+		case f.Field() == "Privacy":
+			return "input must be one of Public, FriendOnly, Private"
+		default:
+			return "value must be one of the enum"
+		}
+	case "required_without":
+		switch true {
+		case f.Field() == "Text":
+			return "text is required if file is empty"
+		case f.Field() == "File":
+			return "file is required if text is empty"
+		default:
+			return "this field is required if the other one is empty"
+		}
+	default:
+		return f.Error()
+	}
+}
+
 func HttpValidationErr(c *gin.Context, err error) {
 	errMap := make(map[string]string)
-	for _, field := range err.(validator.ValidationErrors) {
-		errMap[field.Field()] = field.Error()
+	for _, val := range err.(validator.ValidationErrors) {
+		errMap[val.Field()] = MsgTag(val)
 	}
 
 	c.AbortWithStatusJSON(400, WebResponse{
