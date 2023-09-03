@@ -12,6 +12,7 @@ services:
       - database
       - database-secondary
       - database-arbiter
+      - broker
     container_name: post-app
 
   database:
@@ -20,6 +21,8 @@ services:
     ports:
       - "27017:27017"
     command: mongod --replSet db-dev
+    volumes:
+      - ./static/database:/data/db
 
   database-secondary:
     image: mongo:6.0.9-rc1
@@ -27,6 +30,8 @@ services:
       - "27018:27017"
     command: mongod --replSet db-dev
     container_name: database-secondary
+    volumes:
+      - ./static/database_secondary:/data/db
 
   database-arbiter:
     image: mongo:6.0.9-rc1
@@ -34,3 +39,17 @@ services:
       - "27019:27017"
     command: mongod --replSet db-dev
     container_name: database-arbiter
+    volumes:
+      - ./static/database_arbiter:/data/db
+  
+  broker:
+    image: rabbitmq:management
+    container_name: broker
+    ports:
+      - "5672:5672"  # Port untuk AMQP
+      - "15672:15672"  # Port untuk RabbitMQ Management UI
+    volumes:
+      - "./static/rabbitmq-data:/var/lib/rabbitmq" 
+    environment:
+      RABBITMQ_DEFAULT_USER: "user"  # Ganti dengan nama pengguna yang Anda inginkan
+      RABBITMQ_DEFAULT_PASS: "password"
