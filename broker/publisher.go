@@ -13,7 +13,7 @@ const (
 )
 
 type Publisher interface {
-	SendPost(ctx context.Context, data m.Post) error
+	PublishPost(ctx context.Context, data m.Post) error
 }
 
 type publisherImpl struct {
@@ -40,7 +40,7 @@ func (p *publisherImpl) QueueDeclare(name string) error {
 	return nil
 }
 
-func (p *publisherImpl) SendPost(ctx context.Context, data m.Post) error {
+func (p *publisherImpl) PublishPost(ctx context.Context, data m.Post) error {
 	if err := p.QueueDeclare(POSTQUEUE); err != nil {
 		return err
 	}
