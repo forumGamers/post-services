@@ -14,7 +14,7 @@ func BrokerConnection() {
 	rabbitMqServerUrl := os.Getenv("RABBITMQURL")
 
 	if rabbitMqServerUrl == "" {
-		rabbitMqServerUrl = "amqp://guest:guest@172.19.0.5:5672/"
+		rabbitMqServerUrl = "amqp://user:password@localhost:5672"
 	}
 
 	conn, err := amqp091.Dial(rabbitMqServerUrl)
