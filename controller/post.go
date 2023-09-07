@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	br "github.com/post-services/broker"
 	h "github.com/post-services/helper"
 	m "github.com/post-services/models"
 	b "github.com/post-services/pkg/base"
@@ -97,7 +98,6 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 }
 
 func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
-	//tes lagi nanti kalo udh buat mongo atlas
 	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
 	if err != nil {
 		web.AbortHttp(c, h.ErrInvalidObjectId)
@@ -173,6 +173,13 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	}
 
 	wg.Wait()
+	if err := br.Broker.PublishMessage(ctx, br.DELETEPOSTQUEUE, "application/json", data); err != nil {
+		println(err.Error())
+		session.AbortTransaction(ctx)
+		web.AbortHttp(c, h.InternalServer)
+		return
+	}
+
 	if err := session.CommitTransaction(ctx); err != nil {
 		session.AbortTransaction(ctx)
 		web.AbortHttp(c, err)

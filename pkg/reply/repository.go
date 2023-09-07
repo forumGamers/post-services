@@ -45,14 +45,15 @@ func (r *ReplyRepoImpl) DeleteReplyByPostId(ctx context.Context, postId primitiv
 		commentIds = append(commentIds, comment.CommentId)
 	}
 
-	if _, err := r.DB.DeleteMany(ctx, bson.M{
-		"commentId": bson.M{
-			"$in": commentIds,
-		},
-	}); err != nil {
-		return err
+	if len(commentIds) > 0 {
+		if _, err := r.DB.DeleteMany(ctx, bson.M{
+			"commentId": bson.M{
+				"$in": commentIds,
+			},
+		}); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 

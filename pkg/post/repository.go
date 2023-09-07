@@ -3,7 +3,6 @@ package post
 import (
 	"context"
 
-	h "github.com/post-services/helper"
 	m "github.com/post-services/models"
 	b "github.com/post-services/pkg/base"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -11,10 +10,10 @@ import (
 )
 
 type PostRepo interface {
-	Create(ctx context.Context,data *m.Post)
-	FindById(ctx context.Context,id primitive.ObjectID,data *m.Post) error
-	GetSession() (mongo.Session,error)
-	DeleteOne(ctx context.Context,id primitive.ObjectID) error
+	Create(ctx context.Context, data *m.Post) error
+	FindById(ctx context.Context, id primitive.ObjectID, data *m.Post) error
+	GetSession() (mongo.Session, error)
+	DeleteOne(ctx context.Context, id primitive.ObjectID) error
 }
 
 type PostRepoImpl struct {
@@ -27,21 +26,23 @@ func NewPostRepo() PostRepo {
 	}
 }
 
-func (r *PostRepoImpl) Create(ctx context.Context,data *m.Post) {
-	result,err := r.DB.InsertOne(ctx,data) 
-	h.PanicIfError(err)
-
-	data.Id = result.InsertedID.(primitive.ObjectID)
+func (r *PostRepoImpl) Create(ctx context.Context, data *m.Post) error {
+	result, err := r.BaseRepoImpl.Create(ctx, data)
+	if err != nil {
+		return err
+	}
+	data.Id = result
+	return nil
 }
 
-func (r *PostRepoImpl) FindById(ctx context.Context,id primitive.ObjectID,data *m.Post) error {
-	return r.FindOneById(ctx,id,data) 
+func (r *PostRepoImpl) FindById(ctx context.Context, id primitive.ObjectID, data *m.Post) error {
+	return r.FindOneById(ctx, id, data)
 }
 
-func (r *PostRepoImpl) GetSession() (mongo.Session,error) {
+func (r *PostRepoImpl) GetSession() (mongo.Session, error) {
 	return r.DB.Database().Client().StartSession()
 }
 
-func (r *PostRepoImpl) DeleteOne(ctx context.Context,id primitive.ObjectID) error {
-	return r.DeleteOneById(ctx,id)
+func (r *PostRepoImpl) DeleteOne(ctx context.Context, id primitive.ObjectID) error {
+	return r.DeleteOneById(ctx, id)
 }

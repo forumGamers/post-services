@@ -2,62 +2,79 @@ package broker
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	h "github.com/post-services/helper"
-	m "github.com/post-services/models"
 	"github.com/rabbitmq/amqp091-go"
 )
 
 const (
-	POSTQUEUE = "Post-Queue"
+	NEWPOSTQUEUE    = "New-Post-Queue"
+	DELETEPOSTQUEUE = "Delete-Post-Queue"
 )
 
-type Publisher interface {
-	PublishPost(ctx context.Context, data m.Post) error
-}
-
-type publisherImpl struct {
+type PublisherImpl struct {
 	Channel *amqp091.Channel
 }
 
-func NewPublisher(ch *amqp091.Channel) Publisher {
-	return &publisherImpl{
-		Channel: ch,
-	}
+type Publisher interface {
+	PublishMessage(ctx context.Context, queueName, ContentType string, data any) error
 }
 
-func (p *publisherImpl) QueueDeclare(name string) error {
-	if _, err := p.Channel.QueueDeclare(
-		name,
+var Broker Publisher
+
+func (p *PublisherImpl) PublishMessage(
+	ctx context.Context,
+	queueName,
+	ContentType string,
+	data any,
+) error {
+
+	q, err := p.Channel.QueueDeclare(
+		queueName,
 		true,
 		false,
 		false,
 		false,
 		nil,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if err := p.Channel.PublishWithContext(
+		ctx,
+		q.Name,
+		NEWPOSTQUEUE,
+		false,
+		false,
+		amqp091.Publishing{
+			ContentType: ContentType,
+			Body:        []byte(h.ParseToJson(data)),
+		},
 	); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *publisherImpl) PublishPost(ctx context.Context, data m.Post) error {
-	if err := p.QueueDeclare(POSTQUEUE); err != nil {
-		return err
+func BrokerConnection() {
+	rabbitMqServerUrl := os.Getenv("RABBITMQURL")
+
+	if rabbitMqServerUrl == "" {
+		rabbitMqServerUrl = "amqp://user:password@localhost:5672"
 	}
 
-	if err := p.Channel.PublishWithContext(
-		ctx,
-		"",
-		POSTQUEUE,
-		false,
-		false,
-		amqp091.Publishing{
-			ContentType: "application/json",
-			Body:        []byte(h.ParseToJson(data)),
-		},
-	); err != nil {
-		return err
-	}
+	conn, err := amqp091.Dial(rabbitMqServerUrl)
+	h.PanicIfError(err)
 
-	return nil
+	ch, err := conn.Channel()
+	h.PanicIfError(err)
+
+	Broker = &PublisherImpl{
+		Channel: ch,
+	}
+	fmt.Println("connection to broker success")
 }

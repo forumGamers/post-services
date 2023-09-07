@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/joho/godotenv"
+	"github.com/post-services/broker"
 	cfg "github.com/post-services/config"
 	c "github.com/post-services/controller"
 	h "github.com/post-services/helper"
@@ -17,7 +18,7 @@ import (
 func main() {
 	h.PanicIfError(godotenv.Load())
 	cfg.Connection()
-	cfg.BrokerConnection()
+	broker.BrokerConnection()
 
 	validate := v.GetValidator()
 	imageKit := tp.ImageKitConnection()
