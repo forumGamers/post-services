@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	h "github.com/post-services/helper"
 	"github.com/rabbitmq/amqp091-go"
 )
 
 const (
+	POSTEXCHANGE    = "Post-Exchange"
 	NEWPOSTQUEUE    = "New-Post-Queue"
 	DELETEPOSTQUEUE = "Delete-Post-Queue"
 )
@@ -19,40 +21,29 @@ type PublisherImpl struct {
 }
 
 type Publisher interface {
-	PublishMessage(ctx context.Context, queueName, ContentType string, data any) error
+	PublishMessage(ctx context.Context, exchangeName, queueName, ContentType string, data any) error
 }
 
 var Broker Publisher
 
 func (p *PublisherImpl) PublishMessage(
 	ctx context.Context,
+	exchangeName,
 	queueName,
 	ContentType string,
 	data any,
 ) error {
-
-	q, err := p.Channel.QueueDeclare(
-		queueName,
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-
-	if err != nil {
-		return err
-	}
-
 	if err := p.Channel.PublishWithContext(
 		ctx,
-		q.Name,
+		exchangeName,
 		NEWPOSTQUEUE,
 		false,
 		false,
 		amqp091.Publishing{
-			ContentType: ContentType,
-			Body:        []byte(h.ParseToJson(data)),
+			ContentType:  ContentType,
+			Body:         []byte(h.ParseToJson(data)),
+			DeliveryMode: 2,
+			Timestamp:    time.Now(),
 		},
 	); err != nil {
 		return err
@@ -72,6 +63,49 @@ func BrokerConnection() {
 
 	ch, err := conn.Channel()
 	h.PanicIfError(err)
+
+	for _, exchangeName := range []string{POSTEXCHANGE} {
+		h.PanicIfError(
+			ch.ExchangeDeclare(
+				exchangeName,
+				"direct",
+				true,
+				false,
+				false,
+				false,
+				nil,
+			),
+		)
+	}
+
+	for _, queueName := range []string{NEWPOSTQUEUE, DELETEPOSTQUEUE} {
+		_, err := ch.QueueDeclare(
+			queueName,
+			true,
+			false,
+			false,
+			false,
+			nil,
+		)
+		h.PanicIfError(err)
+	}
+
+	for _, queueName := range []string{NEWPOSTQUEUE, DELETEPOSTQUEUE} {
+		for _, exchangeName := range []string{POSTEXCHANGE} {
+			h.PanicIfError(
+				ch.QueueBind(
+					queueName,
+					"",
+					exchangeName,
+					false,
+					nil,
+				),
+			)
+		}
+	}
+
+	notifyClose := conn.NotifyClose(make(chan *amqp091.Error))
+	go func() { <-notifyClose }()
 
 	Broker = &PublisherImpl{
 		Channel: ch,

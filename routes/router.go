@@ -14,7 +14,8 @@ import (
 type routes struct {
 	router *gin.Engine
 }
-//add limiter
+
+// add limiter
 func NewRouter(
 	post c.PostController,
 	like c.LikeController,
@@ -27,8 +28,6 @@ func NewRouter(
 
 	groupRoutes := r.router.Group("/api")
 
-	r.router.Use(md.SetStart)
-	r.router.Use(md.Logging)
 	r.router.Use(md.CheckOrigin)
 	r.router.Use(md.Cors())
 	r.router.Use(logger.SetLogger())

@@ -88,6 +88,11 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 		os.Remove(h.GetUploadDir(fileInfo.FileName))
 	}
 
+	if err := br.Broker.PublishMessage(context.Background(), br.POSTEXCHANGE, br.NEWPOSTQUEUE, "application/json", data); err != nil {
+		web.AbortHttp(c, h.InternalServer)
+		return
+	}
+
 	data.Text = h.Decryption(data.Text)
 
 	web.WriteResponse(c, web.WebResponse{
@@ -173,7 +178,7 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	}
 
 	wg.Wait()
-	if err := br.Broker.PublishMessage(ctx, br.DELETEPOSTQUEUE, "application/json", data); err != nil {
+	if err := br.Broker.PublishMessage(ctx, br.POSTEXCHANGE, br.DELETEPOSTQUEUE, "application/json", data); err != nil {
 		println(err.Error())
 		session.AbortTransaction(ctx)
 		web.AbortHttp(c, h.InternalServer)
