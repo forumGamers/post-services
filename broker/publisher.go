@@ -33,10 +33,10 @@ func (p *PublisherImpl) PublishMessage(
 	ContentType string,
 	data any,
 ) error {
-	if err := p.Channel.PublishWithContext(
+	return p.Channel.PublishWithContext(
 		ctx,
 		exchangeName,
-		NEWPOSTQUEUE,
+		fmt.Sprintf("%s.%s", exchangeName, NEWPOSTQUEUE),
 		false,
 		false,
 		amqp091.Publishing{
@@ -45,10 +45,7 @@ func (p *PublisherImpl) PublishMessage(
 			DeliveryMode: 2,
 			Timestamp:    time.Now(),
 		},
-	); err != nil {
-		return err
-	}
-	return nil
+	)
 }
 
 func BrokerConnection() {
@@ -95,7 +92,7 @@ func BrokerConnection() {
 			h.PanicIfError(
 				ch.QueueBind(
 					queueName,
-					"",
+					fmt.Sprintf("%s.%s", exchangeName, queueName),
 					exchangeName,
 					false,
 					nil,
