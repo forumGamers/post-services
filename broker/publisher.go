@@ -3,6 +3,7 @@ package broker
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -55,59 +56,50 @@ func BrokerConnection() {
 		rabbitMqServerUrl = "amqp://user:password@localhost:5672"
 	}
 
-	conn, err := amqp091.Dial(rabbitMqServerUrl)
+	conn, err := amqp091.DialConfig(rabbitMqServerUrl, amqp091.Config{
+		Heartbeat: 10,
+	})
 	h.PanicIfError(err)
 
 	ch, err := conn.Channel()
 	h.PanicIfError(err)
 
-	for _, exchangeName := range []string{POSTEXCHANGE} {
-		h.PanicIfError(
-			ch.ExchangeDeclare(
-				exchangeName,
-				"direct",
-				true,
-				false,
-				false,
-				false,
-				nil,
-			),
-		)
-	}
-
-	for _, queueName := range []string{NEWPOSTQUEUE, DELETEPOSTQUEUE} {
-		_, err := ch.QueueDeclare(
-			queueName,
-			true,
-			false,
-			false,
-			false,
-			nil,
-		)
-		h.PanicIfError(err)
-	}
-
-	for _, queueName := range []string{NEWPOSTQUEUE, DELETEPOSTQUEUE} {
-		for _, exchangeName := range []string{POSTEXCHANGE} {
-			h.PanicIfError(
-				ch.QueueBind(
-					queueName,
-					fmt.Sprintf("%s.%s", exchangeName, queueName),
-					exchangeName,
-					false,
-					nil,
-				),
-			)
-		}
-	}
-
 	notifyClose := conn.NotifyClose(make(chan *amqp091.Error))
-	go func() { <-notifyClose }()
+	go func() {
+		retries := 0
+		for {
+			select {
+			case err := <-notifyClose:
+				if err != nil && retries < 10 {
+					newConn, newErr := amqp091.DialConfig(rabbitMqServerUrl, amqp091.Config{
+						Heartbeat: 10,
+					})
+					if newErr != nil {
+						log.Printf("Gagal melakukan koneksi ulang: %s", newErr)
+						continue
+					}
+
+					newCh, newErr := newConn.Channel()
+					if newErr != nil {
+						newConn.Close()
+						log.Printf("Gagal membuat channel baru: %s", newErr)
+						continue
+					}
+
+					Broker = &PublisherImpl{
+						Channel: newCh,
+					}
+					notifyClose = conn.NotifyClose(make(chan *amqp091.Error))
+				}
+				break
+			}
+		}
+	}()
 
 	Broker = &PublisherImpl{
 		Channel: ch,
 	}
-	fmt.Println("connection to broker success")
+	log.Println("connection to broker success")
 }
 
 type Media struct {

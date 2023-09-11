@@ -2,7 +2,7 @@ package config
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"os"
 	"time"
@@ -23,7 +23,7 @@ func Connection() {
 	h.PanicIfError(err)
 	h.PanicIfError(client.Ping(ctx, readpref.Primary()))
 
-	fmt.Println("connection success")
+	log.Println("connection success")
 	DB = client.Database("Post")
 }
 
