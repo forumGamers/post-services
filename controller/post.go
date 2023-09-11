@@ -88,7 +88,18 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 		os.Remove(h.GetUploadDir(fileInfo.FileName))
 	}
 
-	if err := br.Broker.PublishMessage(context.Background(), br.POSTEXCHANGE, br.NEWPOSTQUEUE, "application/json", data); err != nil {
+	if err := br.Broker.PublishMessage(context.Background(), br.POSTEXCHANGE, br.NEWPOSTQUEUE, "application/json", br.PostDocument{
+		Id:           data.Id.Hex(),
+		UserId:       data.UserId,
+		Text:         data.Text,
+		AllowComment: data.AllowComment,
+		CreatedAt:    data.CreatedAt,
+		UpdatedAt:    data.UpdatedAt,
+		Tags:         data.Tags,
+		Privacy:      data.Privacy,
+		Media:        br.Media(data.Media),
+	}); err != nil {
+		//handle koneksi nya putus
 		web.AbortHttp(c, h.InternalServer)
 		return
 	}
