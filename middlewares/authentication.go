@@ -9,22 +9,22 @@ import (
 	"github.com/post-services/web"
 )
 
-func Authentication(c *gin.Context){
+func Authentication(c *gin.Context) {
 	access_token := c.Request.Header.Get("access_token")
 	if access_token == "" {
-		web.AbortHttp(c,h.Forbidden)
+		web.AbortHttp(c, h.Forbidden)
 		return
 	}
 
 	claim := jwt.MapClaims{}
 
-	if token,err := jwt.ParseWithClaims(access_token,&claim,func(t *jwt.Token)(interface{},error){
-		return []byte(os.Getenv("SECRET")),nil
-	}) ; err != nil || !token.Valid {
-		web.AbortHttp(c,h.InvalidToken)
+	if token, err := jwt.ParseWithClaims(access_token, &claim, func(t *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("SECRET")), nil
+	}); err != nil || !token.Valid {
+		web.AbortHttp(c, h.InvalidToken)
 		return
 	}
 
-	c.Set("user",claim)
+	c.Set("user", claim)
 	c.Next()
 }

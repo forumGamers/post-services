@@ -37,7 +37,7 @@ func (p *PublisherImpl) PublishMessage(
 	return p.Channel.PublishWithContext(
 		ctx,
 		exchangeName,
-		fmt.Sprintf("%s.%s", exchangeName, NEWPOSTQUEUE),
+		fmt.Sprintf("%s.%s", exchangeName, queueName),
 		false,
 		false,
 		amqp091.Publishing{

@@ -142,7 +142,7 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	defer session.EndSession(context.Background())
 
 	if err := session.StartTransaction(); err != nil {
-		web.AbortHttp(c, h.Forbidden)
+		web.AbortHttp(c, err)
 		return
 	}
 
@@ -157,7 +157,7 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	}
 
 	go runRountine(func() {
-		pc.Service.DeletePostMedia(context.Background(), data, errCh)
+		pc.Service.DeletePostMedia(ctx, data, errCh)
 	})
 	go runRountine(func() {
 		errCh <- b.NewBaseRepo(b.GetCollection(b.Like)).DeleteMany(ctx, filter)
@@ -175,28 +175,46 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 		errCh <- reply.NewReplyRepo().DeleteReplyByPostId(ctx, data.Id)
 	})
 
+	flag := false
+	var errDb error
 	for i := 0; i < 6; i++ {
 		select {
 		case err := <-errCh:
 			{
-				if err != nil {
-					session.AbortTransaction(ctx)
-					web.AbortHttp(c, err)
-					return
+				if err != nil && !flag {
+					flag = true
+					errDb = err
 				}
 			}
 		}
 	}
 
 	wg.Wait()
-	if err := br.Broker.PublishMessage(ctx, br.POSTEXCHANGE, br.DELETEPOSTQUEUE, "application/json", data); err != nil {
-		println(err.Error())
+	if flag {
+		session.AbortTransaction(ctx)
+		web.AbortHttp(c, errDb)
+		return
+	}
+
+	if err := br.Broker.PublishMessage(ctx, br.POSTEXCHANGE, br.DELETEPOSTQUEUE, "application/json", br.PostDocument{
+		Id:           data.Id.Hex(),
+		UserId:       data.UserId,
+		Text:         data.Text,
+		AllowComment: data.AllowComment,
+		CreatedAt:    data.CreatedAt,
+		UpdatedAt:    data.UpdatedAt,
+		Tags:         data.Tags,
+		Privacy:      data.Privacy,
+		Media:        br.Media(data.Media),
+	}); err != nil {
+		println(err.Error(), "channel")
 		session.AbortTransaction(ctx)
 		web.AbortHttp(c, h.InternalServer)
 		return
 	}
 
 	if err := session.CommitTransaction(ctx); err != nil {
+		println(err.Error(), "commit")
 		session.AbortTransaction(ctx)
 		web.AbortHttp(c, err)
 		return
