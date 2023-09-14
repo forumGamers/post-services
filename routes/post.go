@@ -6,10 +6,9 @@ import (
 	md "github.com/post-services/middlewares"
 )
 
-func (r routes) postRoutes(rg *gin.RouterGroup,pc controller.PostController) {
+func (r routes) postRoutes(rg *gin.RouterGroup, pc controller.PostController) {
 	uri := rg.Group("/post")
-	
-	uri.POST("/",md.Authentication ,pc.CreatePost)
-	uri.GET("/:postId",pc.FindById)
-	uri.DELETE("/:postId",md.Authentication,pc.DeletePost)
+
+	uri.POST("/", md.Authentication, pc.CreatePost)
+	uri.DELETE("/:postId", md.Authentication, pc.DeletePost)
 }

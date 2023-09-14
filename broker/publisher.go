@@ -11,18 +11,14 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
-const (
-	POSTEXCHANGE    = "Post-Exchange"
-	NEWPOSTQUEUE    = "New-Post-Queue"
-	DELETEPOSTQUEUE = "Delete-Post-Queue"
-)
-
 type PublisherImpl struct {
 	Channel *amqp091.Channel
 }
 
 type Publisher interface {
 	PublishMessage(ctx context.Context, exchangeName, queueName, ContentType string, data any) error
+	DeclareExchangeAndQueue()
+	BindQueue(exchange string, queues []string)
 }
 
 var Broker Publisher
@@ -99,23 +95,63 @@ func BrokerConnection() {
 	Broker = &PublisherImpl{
 		Channel: ch,
 	}
+
+	Broker.DeclareExchangeAndQueue()
+
 	log.Println("connection to broker success")
 }
 
-type Media struct {
-	Url  string `json:"url"`
-	Type string `json:"type"`
-	Id   string `json:"id"`
+func (ch *PublisherImpl) DeclareExchangeAndQueue() {
+	exchanges := []string{POSTEXCHANGE, LIKEEXCHANGE}
+	queues := []string{NEWPOSTQUEUE, DELETEPOSTQUEUE, NEWLIKEQUEUE, DELETELIKEQUEUE}
+	for _, exchangeName := range exchanges {
+		h.PanicIfError(
+			ch.Channel.ExchangeDeclare(
+				exchangeName,
+				"direct",
+				true,
+				false,
+				false,
+				false,
+				nil,
+			),
+		)
+	}
+
+	for _, queueName := range queues {
+		_, err := ch.Channel.QueueDeclare(
+			queueName,
+			true,
+			false,
+			false,
+			false,
+			nil,
+		)
+		h.PanicIfError(err)
+	}
+
+	for _, exchange := range exchanges {
+		var queues []string
+		switch exchange {
+		case POSTEXCHANGE:
+			queues = []string{NEWPOSTQUEUE, DELETEPOSTQUEUE}
+		case LIKEEXCHANGE:
+			queues = []string{NEWLIKEQUEUE, DELETELIKEQUEUE}
+		}
+		ch.BindQueue(exchange, queues)
+	}
 }
 
-type PostDocument struct {
-	Id           string `json:"id"`
-	UserId       string `json:"userId"`
-	Text         string `json:"text" bson:"text"`
-	Media        Media
-	AllowComment bool `json:"allowComment" default:"true"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	Tags         []string `json:"tags"`
-	Privacy      string   `json:"privacy" default:"Public"`
+func (ch *PublisherImpl) BindQueue(exchange string, queues []string) {
+	for _, queue := range queues {
+		h.PanicIfError(
+			ch.Channel.QueueBind(
+				queue,
+				fmt.Sprintf("%s.%s", exchange, queue),
+				exchange,
+				false,
+				nil,
+			),
+		)
+	}
 }

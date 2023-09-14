@@ -21,7 +21,6 @@ import (
 
 type PostController interface {
 	CreatePost(c *gin.Context)
-	FindById(c *gin.Context)
 	DeletePost(c *gin.Context)
 }
 
@@ -207,14 +206,12 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 		Privacy:      data.Privacy,
 		Media:        br.Media(data.Media),
 	}); err != nil {
-		println(err.Error(), "channel")
 		session.AbortTransaction(ctx)
 		web.AbortHttp(c, h.InternalServer)
 		return
 	}
 
 	if err := session.CommitTransaction(ctx); err != nil {
-		println(err.Error(), "commit")
 		session.AbortTransaction(ctx)
 		web.AbortHttp(c, err)
 		return
@@ -222,28 +219,6 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 
 	web.WriteResponse(c, web.WebResponse{
 		Message: "success",
-		Code:    200,
-	})
-}
-
-func (pc *PostControllerImpl) FindById(c *gin.Context) {
-	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
-	if err != nil {
-		web.AbortHttp(c, h.ErrInvalidObjectId)
-		return
-	}
-
-	var data m.Post
-	if err := pc.Repo.FindById(context.Background(), postId, &data); err != nil {
-		web.AbortHttp(c, err)
-		return
-	}
-
-	data.Text = h.Decryption(data.Text)
-
-	web.WriteResponse(c, web.WebResponse{
-		Data:    data,
-		Message: "Success",
 		Code:    200,
 	})
 }

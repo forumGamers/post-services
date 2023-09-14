@@ -2,10 +2,10 @@ package controller
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	br "github.com/post-services/broker"
 	h "github.com/post-services/helper"
 	m "github.com/post-services/models"
 	b "github.com/post-services/pkg/base"
@@ -38,59 +38,54 @@ func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 		return
 	}
 
-	var wg sync.WaitGroup
-	errCh := make(chan error)
 	id := h.GetUser(c).UUID
+	var post m.Post
+	if err := b.NewBaseRepo(b.GetCollection(b.Post)).FindOneById(context.Background(), postId, &post); err != nil {
+		web.AbortHttp(c, err)
+		return
+	}
 
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		var post m.Post
-		errCh <- b.NewBaseRepo(b.GetCollection(b.Post)).FindOneById(context.Background(), postId, &post)
-	}()
-
-	go func() {
-		defer wg.Done()
-		var like m.Like
-		if err := lc.Repo.GetLikesByUserIdAndPostId(context.Background(), postId, id, &like); err != nil {
-			if err == h.NotFount {
-				errCh <- nil
-				return
-			}
-			errCh <- err
+	var like m.Like
+	if err := lc.Repo.GetLikesByUserIdAndPostId(context.Background(), postId, id, &like); err != nil {
+		if err != h.NotFount {
+			web.AbortHttp(c, err)
 			return
 		}
-		errCh <- h.Conflict
-	}()
-
-	for i := 0; i < 2; i++ {
-		select {
-		case err := <-errCh:
-			if err != nil {
-				web.AbortHttp(c, err)
-				return
-			}
-		}
 	}
-	wg.Wait()
 
-	like := m.Like{
+	if like.Id != primitive.NilObjectID {
+		web.AbortHttp(c, h.Conflict)
+		return
+	}
+
+	newLike := m.Like{
 		UserId:    id,
-		PostId:    postId,
+		PostId:    post.Id,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	result, err := lc.Repo.AddLikes(context.Background(), &like)
+	result, err := lc.Repo.AddLikes(context.Background(), &newLike)
 	if err != nil {
 		web.AbortHttp(c, err)
 		return
 	}
 
-	like.Id = result
+	newLike.Id = result
+	if err := br.Broker.PublishMessage(context.Background(), br.LIKEEXCHANGE, br.NEWLIKEQUEUE, "application/json", br.LikeDocument{
+		Id:        newLike.Id.Hex(),
+		UserId:    newLike.UserId,
+		PostId:    newLike.PostId.Hex(),
+		CreatedAt: newLike.CreatedAt,
+		UpdatedAt: newLike.UpdatedAt,
+	}); err != nil {
+		web.AbortHttp(c, h.InternalServer)
+		return
+	}
+
 	web.WriteResponse(c, web.WebResponse{
 		Code:    201,
 		Message: "success",
-		Data:    like,
+		Data:    newLike,
 	})
 }
 

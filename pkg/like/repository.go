@@ -36,7 +36,7 @@ func (r *LikeRepoImpl) GetLikesByUserIdAndPostId(ctx context.Context, postId pri
 	if err := r.DB.FindOne(ctx, bson.M{
 		"userId": userId,
 		"postId": postId,
-	}).Decode(result); err != nil {
+	}).Decode(&result); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return h.NotFount
 		}
