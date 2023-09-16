@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
+	br "github.com/post-services/broker"
 	h "github.com/post-services/helper"
 	m "github.com/post-services/models"
 	b "github.com/post-services/pkg/base"
@@ -56,6 +57,18 @@ func (pc *CommentControllerImpl) CreateComment(c *gin.Context) {
 		return
 	}
 
+	if err := br.Broker.PublishMessage(context.Background(), br.COMMENTEXCHANGE, br.NEWCOMMENTQUEUE, "application/json", br.CommentDocumment{
+		Id:        comment.Id.Hex(),
+		UserId:    comment.UserId,
+		Text:      comment.Text,
+		PostId:    comment.PostId.Hex(),
+		CreatedAt: comment.CreatedAt,
+		UpdatedAt: comment.UpdatedAt,
+	}); err != nil {
+		web.AbortHttp(c, h.BadGateway)
+		return
+	}
+
 	comment.Text = h.Decryption(comment.Text)
 
 	web.WriteResponse(c, web.WebResponse{
@@ -85,6 +98,18 @@ func (pc *CommentControllerImpl) DeleteComment(c *gin.Context) {
 
 	if err := pc.Repo.DeleteOne(context.Background(), commentId); err != nil {
 		web.AbortHttp(c, err)
+		return
+	}
+
+	if err := br.Broker.PublishMessage(context.Background(), br.COMMENTEXCHANGE, br.DELETECOMMENTQUEUE, "application/json", br.CommentDocumment{
+		Id:        comment.Id.Hex(),
+		UserId:    comment.UserId,
+		Text:      comment.Text,
+		PostId:    comment.PostId.Hex(),
+		CreatedAt: comment.CreatedAt,
+		UpdatedAt: comment.UpdatedAt,
+	}); err != nil {
+		web.AbortHttp(c, h.BadGateway)
 		return
 	}
 

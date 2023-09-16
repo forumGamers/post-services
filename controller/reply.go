@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
+	br "github.com/post-services/broker"
 	h "github.com/post-services/helper"
 	m "github.com/post-services/models"
 	b "github.com/post-services/pkg/base"
@@ -56,6 +57,18 @@ func (rc *ReplyControllerImpl) AddReply(c *gin.Context) {
 		return
 	}
 
+	if err := br.Broker.PublishMessage(context.Background(), br.REPLYEXCHANGE, br.NEWREPLYQUEUE, "application/json", br.ReplyDocument{
+		Id:        reply.Id.Hex(),
+		UserId:    reply.UserId,
+		Text:      reply.Text,
+		CommentId: reply.CommentId.Hex(),
+		CreatedAt: reply.CreatedAt,
+		UpdatedAt: reply.UpdatedAt,
+	}); err != nil {
+		web.AbortHttp(c, h.BadGateway)
+		return
+	}
+
 	reply.Text = h.Decryption(reply.Text)
 
 	web.WriteResponse(c, web.WebResponse{
@@ -85,6 +98,18 @@ func (rc *ReplyControllerImpl) DeleteReply(c *gin.Context) {
 
 	if err := rc.Repo.DeleteOne(context.Background(), replyId); err != nil {
 		web.AbortHttp(c, err)
+		return
+	}
+
+	if err := br.Broker.PublishMessage(context.Background(), br.REPLYEXCHANGE, br.DELETEREPLYQUEUE, "application/json", br.ReplyDocument{
+		Id:        reply.Id.Hex(),
+		UserId:    reply.UserId,
+		Text:      reply.Text,
+		CommentId: reply.CommentId.Hex(),
+		CreatedAt: reply.CreatedAt,
+		UpdatedAt: reply.UpdatedAt,
+	}); err != nil {
+		web.AbortHttp(c, h.BadGateway)
 		return
 	}
 

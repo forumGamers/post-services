@@ -102,8 +102,8 @@ func BrokerConnection() {
 }
 
 func (ch *PublisherImpl) DeclareExchangeAndQueue() {
-	exchanges := []string{POSTEXCHANGE, LIKEEXCHANGE}
-	queues := []string{NEWPOSTQUEUE, DELETEPOSTQUEUE, NEWLIKEQUEUE, DELETELIKEQUEUE}
+	exchanges := []string{POSTEXCHANGE, LIKEEXCHANGE, COMMENTEXCHANGE, REPLYEXCHANGE, SHAREEXCHANGE}
+	queues := []string{NEWPOSTQUEUE, DELETEPOSTQUEUE, NEWLIKEQUEUE, DELETELIKEQUEUE, NEWCOMMENTQUEUE, DELETECOMMENTQUEUE, NEWREPLYQUEUE, DELETEREPLYQUEUE, NEWSHAREQUEUE, DELETESHAREQUEUE}
 	for _, exchangeName := range exchanges {
 		h.PanicIfError(
 			ch.Channel.ExchangeDeclare(
@@ -137,6 +137,8 @@ func (ch *PublisherImpl) DeclareExchangeAndQueue() {
 			queues = []string{NEWPOSTQUEUE, DELETEPOSTQUEUE}
 		case LIKEEXCHANGE:
 			queues = []string{NEWLIKEQUEUE, DELETELIKEQUEUE}
+		case COMMENTEXCHANGE:
+			queues = []string{NEWCOMMENTQUEUE, DELETECOMMENTQUEUE}
 		}
 		ch.BindQueue(exchange, queues)
 	}

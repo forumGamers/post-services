@@ -27,3 +27,21 @@ type LikeDocument struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type CommentDocumment struct {
+	Id        string `json:"id"`
+	UserId    string `json:"userId"`
+	Text      string `json:"text"`
+	PostId    string `json:"postId"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type ReplyDocument struct {
+	Id        string `json:"iid"`
+	UserId    string `json:"userId"`
+	Text      string `json:"text"`
+	CommentId string `json:"commentId"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}

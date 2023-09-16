@@ -78,7 +78,7 @@ func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 		CreatedAt: newLike.CreatedAt,
 		UpdatedAt: newLike.UpdatedAt,
 	}); err != nil {
-		web.AbortHttp(c, h.InternalServer)
+		web.AbortHttp(c, h.BadGateway)
 		return
 	}
 
@@ -106,6 +106,17 @@ func (lc *LikeControllerImpl) UnlikePost(c *gin.Context) {
 
 	if err := lc.Repo.DeleteLike(context.Background(), postId, userId); err != nil {
 		web.AbortHttp(c, err)
+		return
+	}
+
+	if err := br.Broker.PublishMessage(context.Background(), br.LIKEEXCHANGE, br.DELETELIKEQUEUE, "application/json", br.LikeDocument{
+		Id:        like.Id.Hex(),
+		UserId:    like.UserId,
+		PostId:    like.PostId.Hex(),
+		CreatedAt: like.CreatedAt,
+		UpdatedAt: like.UpdatedAt,
+	}); err != nil {
+		web.AbortHttp(c, h.BadGateway)
 		return
 	}
 
