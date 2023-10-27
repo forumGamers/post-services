@@ -1,6 +1,10 @@
 package web
 
-import "mime/multipart"
+import (
+	"mime/multipart"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type PostForm struct {
 	File         *multipart.FileHeader `form:"file" validate:"required_without=Text"`
@@ -10,5 +14,22 @@ type PostForm struct {
 }
 
 type CommentForm struct {
-	Text string `json:"text" validate:"required"`
+	Text string `json:"text" validate:"required" form:"text"`
+}
+
+type PostData struct {
+	Id           primitive.ObjectID `json:"_id"`
+	UserId       string             `json:"userId"`
+	Text         string             `json:"text"`
+	AllowComment bool               `json:"allowComment"`
+	Privacy      string             `json:"privacy"`
+	Media        struct {
+		Type string `json:"type"`
+		Url  string `json:"url"`
+		Id   string `json:"id"`
+	} `json:"media"`
+}
+
+type PostDatas struct {
+	Datas []PostData `json:"datas" binding:"required"`
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	br "github.com/post-services/broker"
@@ -22,6 +23,7 @@ import (
 type PostController interface {
 	CreatePost(c *gin.Context)
 	DeletePost(c *gin.Context)
+	BulkCreatePost(c *gin.Context)
 }
 
 type PostControllerImpl struct {
@@ -99,7 +101,7 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 		Media:        br.Media(data.Media),
 	}); err != nil {
 		//handle koneksi nya putus
-		web.AbortHttp(c, h.InternalServer)
+		web.AbortHttp(c, h.BadGateway)
 		return
 	}
 
@@ -127,7 +129,7 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 
 	user := h.GetUser(c)
 
-	if data.UserId != user.UUID || user.Role != "Admin" {
+	if data.UserId != user.UUID || user.LoggedAs != "Admin" {
 		web.AbortHttp(c, h.Forbidden)
 		return
 	}
@@ -207,7 +209,7 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 		Media:        br.Media(data.Media),
 	}); err != nil {
 		session.AbortTransaction(ctx)
-		web.AbortHttp(c, h.InternalServer)
+		web.AbortHttp(c, h.BadGateway)
 		return
 	}
 
@@ -220,5 +222,61 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	web.WriteResponse(c, web.WebResponse{
 		Message: "success",
 		Code:    200,
+	})
+}
+
+func (pc *PostControllerImpl) BulkCreatePost(c *gin.Context) {
+	if h.GetStage(c) != "Development" {
+		web.CustomMsgAbortHttp(c, "No Content", 204)
+		return
+	}
+
+	var datas web.PostDatas
+	c.ShouldBind(&datas)
+
+	var posts []web.PostData
+	for _, data := range datas.Datas {
+		if data.UserId != "" {
+			data.Text = h.Encryption(data.Text)
+			posts = append(posts, data)
+		}
+	}
+
+	pc.Service.InsertManyAndBindIds(context.Background(), posts)
+
+	var postDocuments []br.PostDocument
+	for _, post := range posts {
+		postDocuments = append(postDocuments, br.PostDocument{
+			Id:           post.Id.Hex(),
+			UserId:       post.UserId,
+			Text:         post.Text,
+			AllowComment: post.AllowComment,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+			Tags:         []string{},
+			Privacy:      post.Privacy,
+			Media: br.Media{
+				Url:  post.Media.Url,
+				Id:   post.Media.Id,
+				Type: post.Media.Type,
+			},
+		})
+	}
+
+	if err := br.Broker.PublishMessage(
+		context.Background(),
+		br.POSTEXCHANGE,
+		br.BULKPOSTQUEUE,
+		"application/json",
+		&postDocuments,
+	); err != nil {
+		web.AbortHttp(c, h.BadGateway)
+		return
+	}
+
+	web.WriteResponse(c, web.WebResponse{
+		Code:    201,
+		Message: "Success",
+		Data:    posts,
 	})
 }

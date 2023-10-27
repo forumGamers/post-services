@@ -34,3 +34,7 @@ func (ik *ImagekitMockImpl) UploadFile(ctx context.Context, file []byte, fileNam
 func (ik *ImagekitMockImpl) UpdateImage(ctx context.Context, file []byte, fileName string, folder string, updatedFileID string, resultCh chan<- tp.ImageKitResult) {
 }
 func (ik *ImagekitMockImpl) Delete(ctx context.Context, imageId string, ch chan<- error) {}
+
+func (repo *PostRepoMockImpl) CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error) {
+	return nil, nil
+}

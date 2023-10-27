@@ -9,6 +9,8 @@ import (
 func (r routes) postRoutes(rg *gin.RouterGroup, pc controller.PostController) {
 	uri := rg.Group("/post")
 
+	uri.Use(md.SetContext)
 	uri.POST("/", md.Authentication, pc.CreatePost)
+	uri.POST("/bulk", md.Authentication, pc.BulkCreatePost)
 	uri.DELETE("/:postId", md.Authentication, pc.DeletePost)
 }

@@ -65,3 +65,13 @@ func ParseToJson(data any) []byte {
 	}
 	return json
 }
+
+func GetStage(c *gin.Context) string {
+	stage, ok := c.Get("stage")
+	if !ok {
+		return "Development"
+	}
+	valid, ok := stage.(string)
+
+	return valid
+}

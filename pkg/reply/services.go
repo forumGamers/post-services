@@ -44,7 +44,7 @@ func (rs *ReplyServiceImpl) CreatePayload(data web.CommentForm, commentId primit
 
 func (rs *ReplyServiceImpl) AuthorizeDeleteReply(data m.ReplyComment, user m.User) error {
 	//nanti yang punya post juga bisa hapus
-	if user.UUID != data.UserId || user.Role != "Admin" {
+	if user.UUID != data.UserId || user.LoggedAs != "Admin" {
 		return h.AccessDenied
 	}
 	return nil

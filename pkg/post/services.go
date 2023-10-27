@@ -9,12 +9,14 @@ import (
 	m "github.com/post-services/models"
 	tp "github.com/post-services/third-party"
 	"github.com/post-services/web"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type PostService interface {
 	ValidatePostInput(data *web.PostForm) error
 	CreatePostPayload(ctx context.Context, data *web.PostForm, user m.User, file tp.UploadFile) (m.Post, error)
 	DeletePostMedia(ctx context.Context, post m.Post, ch chan<- error)
+	InsertManyAndBindIds(ctx context.Context, datas []web.PostData) error
 }
 
 type PostServiceImpl struct {
@@ -82,4 +84,23 @@ func (ps *PostServiceImpl) DeletePostMedia(ctx context.Context, post m.Post, ch 
 			ch <- nil
 		}()
 	}
+}
+
+func (ps *PostServiceImpl) InsertManyAndBindIds(ctx context.Context, datas []web.PostData) error {
+	var payload []any
+
+	for _, data := range datas {
+		payload = append(payload, data)
+	}
+
+	ids, err := ps.Repo.CreateMany(ctx, payload)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(ids.InsertedIDs); i++ {
+		id := ids.InsertedIDs[i].(primitive.ObjectID)
+		datas[i].Id = id
+	}
+	return nil
 }

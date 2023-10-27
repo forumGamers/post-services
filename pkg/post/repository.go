@@ -14,6 +14,7 @@ type PostRepo interface {
 	FindById(ctx context.Context, id primitive.ObjectID, data *m.Post) error
 	GetSession() (mongo.Session, error)
 	DeleteOne(ctx context.Context, id primitive.ObjectID) error
+	CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error)
 }
 
 type PostRepoImpl struct {
@@ -45,4 +46,8 @@ func (r *PostRepoImpl) GetSession() (mongo.Session, error) {
 
 func (r *PostRepoImpl) DeleteOne(ctx context.Context, id primitive.ObjectID) error {
 	return r.DeleteOneById(ctx, id)
+}
+
+func (r *PostRepoImpl) CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error) {
+	return r.DB.InsertMany(ctx, datas)
 }

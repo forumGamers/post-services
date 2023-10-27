@@ -26,11 +26,12 @@ func NewRouter(
 
 	r := routes{router: gin.Default()}
 
-	groupRoutes := r.router.Group("/api")
-
 	r.router.Use(md.CheckOrigin)
 	r.router.Use(md.Cors())
 	r.router.Use(logger.SetLogger())
+
+	groupRoutes := r.router.Group("/api/v1")
+
 	r.postRoutes(groupRoutes, post)
 	r.likeRoutes(groupRoutes, like)
 	r.commentRoutes(groupRoutes, comment)
