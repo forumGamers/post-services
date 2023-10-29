@@ -33,3 +33,13 @@ type PostData struct {
 type PostDatas struct {
 	Datas []PostData `json:"datas" binding:"required"`
 }
+
+type LikeData struct {
+	Id     primitive.ObjectID `json:"_id"`
+	UserId string             `json:"userId"`
+	PostId primitive.ObjectID `json:"postId"`
+}
+
+type LikeDatas struct {
+	Datas []LikeData `json:"datas" binding:"required"`
+}

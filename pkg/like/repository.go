@@ -16,6 +16,7 @@ type LikeRepo interface {
 	GetLikesByUserIdAndPostId(ctx context.Context, postId primitive.ObjectID, userId string, result *m.Like) error
 	AddLikes(ctx context.Context, like *m.Like) (primitive.ObjectID, error)
 	DeleteLike(ctx context.Context, postId primitive.ObjectID, userId string) error
+	CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error)
 }
 
 type LikeRepoImpl struct {
@@ -64,4 +65,8 @@ func (r *LikeRepoImpl) DeleteLike(ctx context.Context, postId primitive.ObjectID
 		return err
 	}
 	return nil
+}
+
+func (r *LikeRepoImpl) CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error) {
+	return r.DB.InsertMany(ctx, datas)
 }

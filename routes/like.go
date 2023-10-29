@@ -9,6 +9,9 @@ import (
 func (r routes) likeRoutes(rg *gin.RouterGroup, lc controller.LikeController) {
 	uri := rg.Group("/like")
 
-	uri.POST("/:postId", md.Authentication, lc.LikePost)
-	uri.DELETE("/:postId", md.Authentication, lc.UnlikePost)
+	uri.Use(md.SetContext)
+	uri.Use(md.Authentication)
+	uri.POST("/bulk", lc.BulkLikes)
+	uri.POST("/:postId", lc.LikePost)
+	uri.DELETE("/:postId", lc.UnlikePost)
 }

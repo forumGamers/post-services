@@ -9,6 +9,7 @@ const (
 	LIKEEXCHANGE    = "Like-Exchange"
 	NEWLIKEQUEUE    = "New-Like-Queue"
 	DELETELIKEQUEUE = "Delete-Like-Queue"
+	BULKLIKEQUEUE   = "Bulk-Like-Queue"
 
 	COMMENTEXCHANGE    = "Comment-Exchange"
 	NEWCOMMENTQUEUE    = "New-Comment-Queue"

@@ -17,6 +17,7 @@ import (
 type LikeController interface {
 	LikePost(c *gin.Context)
 	UnlikePost(c *gin.Context)
+	BulkLikes(c *gin.Context)
 }
 
 type LikeControllerImpl struct {
@@ -123,5 +124,54 @@ func (lc *LikeControllerImpl) UnlikePost(c *gin.Context) {
 	web.WriteResponse(c, web.WebResponse{
 		Code:    200,
 		Message: "success",
+	})
+}
+
+func (lc *LikeControllerImpl) BulkLikes(c *gin.Context) {
+	if h.GetStage(c) != "Development" {
+		web.CustomMsgAbortHttp(c, "No Content", 204)
+		return
+	}
+
+	var datas web.LikeDatas
+	c.ShouldBind(&datas)
+
+	var likes []web.LikeData
+	for _, like := range datas.Datas {
+		postId, _ := primitive.ObjectIDFromHex(like.PostId.Hex())
+		likes = append(likes, web.LikeData{
+			PostId: postId,
+			UserId: like.UserId,
+		})
+	}
+
+	lc.Service.InsertManyAndBindIds(context.Background(), likes)
+
+	var likeDocument []br.LikeDocument
+	for _, like := range likes {
+		likeDocument = append(likeDocument, br.LikeDocument{
+			Id:        like.Id.Hex(),
+			UserId:    like.UserId,
+			PostId:    like.PostId.Hex(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		})
+	}
+
+	if err := br.Broker.PublishMessage(
+		context.Background(),
+		br.LIKEEXCHANGE,
+		br.BULKLIKEQUEUE,
+		"application/json",
+		&likeDocument,
+	); err != nil {
+		web.AbortHttp(c, h.BadGateway)
+		return
+	}
+
+	web.WriteResponse(c, web.WebResponse{
+		Code:    201,
+		Message: "Success",
+		Data:    likes,
 	})
 }

@@ -7,6 +7,7 @@ import (
 	m "github.com/post-services/models"
 	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type LikeRepoMockImpl struct {
@@ -39,4 +40,8 @@ func (r *LikeRepoMockImpl) AddLikes(ctx context.Context, like *m.Like) (primitiv
 
 func (r *LikeRepoMockImpl) DeleteLike(ctx context.Context, postId primitive.ObjectID, userId string) error {
 	return nil
+}
+
+func (r *LikeRepoMockImpl) CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error) {
+	return nil, nil
 }
