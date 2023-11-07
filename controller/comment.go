@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	br "github.com/post-services/broker"
@@ -16,6 +17,7 @@ import (
 type CommentController interface {
 	CreateComment(c *gin.Context)
 	DeleteComment(c *gin.Context)
+	BulkComment(c *gin.Context)
 }
 
 type CommentControllerImpl struct {
@@ -116,5 +118,56 @@ func (pc *CommentControllerImpl) DeleteComment(c *gin.Context) {
 	web.WriteResponse(c, web.WebResponse{
 		Code:    200,
 		Message: "success",
+	})
+}
+
+func (pc *CommentControllerImpl) BulkComment(c *gin.Context) {
+	if h.GetStage(c) != "Development" {
+		web.CustomMsgAbortHttp(c, "No Content", 204)
+		return
+	}
+
+	var datas web.CommentDatas
+	c.ShouldBind(&datas)
+
+	var comments []web.CommentData
+	for _, data := range datas.Datas {
+		postId, _ := primitive.ObjectIDFromHex(data.PostId.Hex())
+		if data.UserId != "" && postId != primitive.NilObjectID {
+			data.Text = h.Encryption(data.Text)
+			data.PostId = postId
+			comments = append(comments, data)
+		}
+	}
+
+	pc.Service.InsertManyAndBindIds(context.Background(), comments)
+
+	var commentDocuments []br.CommentDocumment
+	for _, comment := range comments {
+		commentDocuments = append(commentDocuments, br.CommentDocumment{
+			Id:        comment.Id.Hex(),
+			UserId:    comment.UserId,
+			PostId:    comment.PostId.Hex(),
+			Text:      comment.Text,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		})
+	}
+
+	if err := br.Broker.PublishMessage(
+		context.Background(),
+		br.COMMENTEXCHANGE,
+		br.BULKCOMMENTQUEUE,
+		"application/json",
+		&commentDocuments,
+	); err != nil {
+		web.AbortHttp(c, h.BadGateway)
+		return
+	}
+
+	web.WriteResponse(c, web.WebResponse{
+		Code:    201,
+		Message: "success",
+		Data:    comments,
 	})
 }

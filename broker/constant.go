@@ -14,6 +14,7 @@ const (
 	COMMENTEXCHANGE    = "Comment-Exchange"
 	NEWCOMMENTQUEUE    = "New-Comment-Queue"
 	DELETECOMMENTQUEUE = "Delete-Comment-Queue"
+	BULKCOMMENTQUEUE   = "Bulk-Comment-Queue"
 
 	REPLYEXCHANGE    = "Reply-Exchange"
 	NEWREPLYQUEUE    = "New-Reply-Queue"

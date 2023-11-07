@@ -6,9 +6,12 @@ import (
 	md "github.com/post-services/middlewares"
 )
 
-func (r routes) commentRoutes(rg *gin.RouterGroup, pc controller.CommentController) {
+func (r routes) commentRoutes(rg *gin.RouterGroup, cc controller.CommentController) {
 	uri := rg.Group("/comment")
 
-	uri.POST("/:postId", md.Authentication, pc.CreateComment)
-	uri.DELETE("/:commentId", md.Authentication, pc.DeleteComment)
+	uri.Use(md.SetContext)
+	uri.Use(md.Authentication)
+	uri.POST("/bulk", cc.BulkComment)
+	uri.POST("/:postId", cc.CreateComment)
+	uri.DELETE("/:commentId", cc.DeleteComment)
 }

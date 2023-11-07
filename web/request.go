@@ -18,7 +18,7 @@ type CommentForm struct {
 }
 
 type PostData struct {
-	Id           primitive.ObjectID `json:"_id"`
+	Id           primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 	UserId       string             `json:"userId"`
 	Text         string             `json:"text"`
 	AllowComment bool               `json:"allowComment"`
@@ -42,4 +42,15 @@ type LikeData struct {
 
 type LikeDatas struct {
 	Datas []LikeData `json:"datas" binding:"required"`
+}
+
+type CommentData struct {
+	Id     primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
+	Text   string             `json:"text"`
+	UserId string             `json:"userId"`
+	PostId primitive.ObjectID `json:"postId"`
+}
+
+type CommentDatas struct {
+	Datas []CommentData `json:"datas" binding:"required"`
 }

@@ -1,6 +1,7 @@
 package comment
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -14,6 +15,7 @@ type CommentService interface {
 	ValidateComment(data *web.CommentForm) error
 	CreatePayload(data web.CommentForm, postId primitive.ObjectID, userId string) m.Comment
 	AuthorizeDeleteComment(data m.Comment, user m.User) error
+	InsertManyAndBindIds(ctx context.Context, datas []web.CommentData) error
 }
 
 type CommentServiceImpl struct {
@@ -46,6 +48,25 @@ func (ps *CommentServiceImpl) AuthorizeDeleteComment(data m.Comment, user m.User
 	//nanti yang punya post juga bisa hapus
 	if user.UUID != data.UserId || user.LoggedAs != "Admin" {
 		return h.AccessDenied
+	}
+	return nil
+}
+
+func (ps *CommentServiceImpl) InsertManyAndBindIds(ctx context.Context, datas []web.CommentData) error {
+	var payload []any
+
+	for _, data := range datas {
+		payload = append(payload, data)
+	}
+
+	ids, err := ps.Repo.CreateMany(ctx, payload)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(ids.InsertedIDs); i++ {
+		id := ids.InsertedIDs[i].(primitive.ObjectID)
+		datas[i].Id = id
 	}
 	return nil
 }

@@ -6,12 +6,14 @@ import (
 	m "github.com/post-services/models"
 	b "github.com/post-services/pkg/base"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type CommentRepo interface {
 	CreateComment(ctx context.Context, data *m.Comment) error
 	FindById(ctx context.Context, id primitive.ObjectID, data *m.Comment) error
 	DeleteOne(ctx context.Context, id primitive.ObjectID) error
+	CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error)
 }
 
 type CommentRepoImpl struct {
@@ -39,4 +41,8 @@ func (r *CommentRepoImpl) FindById(ctx context.Context, id primitive.ObjectID, d
 
 func (r *CommentRepoImpl) DeleteOne(ctx context.Context, id primitive.ObjectID) error {
 	return r.DeleteOneById(ctx, id)
+}
+
+func (r *CommentRepoImpl) CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error) {
+	return r.DB.InsertMany(ctx, datas)
 }
