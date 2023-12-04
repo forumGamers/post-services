@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/post-services/web"
+	"github.com/post-services/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type LikeService interface {
-	InsertManyAndBindIds(ctx context.Context, likes []web.LikeData) error
+	InsertManyAndBindIds(ctx context.Context, likes []models.Like) error
 }
 
 type LikeServiceImpl struct {
@@ -24,7 +24,7 @@ func NewLikeService(repo LikeRepo, validate *validator.Validate) LikeService {
 	}
 }
 
-func (ls *LikeServiceImpl) InsertManyAndBindIds(ctx context.Context, likes []web.LikeData) error {
+func (ls *LikeServiceImpl) InsertManyAndBindIds(ctx context.Context, likes []models.Like) error {
 	var payload []any
 
 	for _, data := range likes {

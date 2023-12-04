@@ -7,15 +7,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	br "github.com/post-services/broker"
+	// br "github.com/post-services/broker"
 	h "github.com/post-services/helper"
+	"github.com/post-services/models"
 	m "github.com/post-services/models"
-	b "github.com/post-services/pkg/base"
+	"github.com/post-services/pkg/comment"
+	"github.com/post-services/pkg/like"
 	p "github.com/post-services/pkg/post"
-	"github.com/post-services/pkg/reply"
+	"github.com/post-services/pkg/share"
 	tp "github.com/post-services/third-party"
 	"github.com/post-services/web"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -27,14 +28,26 @@ type PostController interface {
 }
 
 type PostControllerImpl struct {
-	Service p.PostService
-	Repo    p.PostRepo
+	Service     p.PostService
+	Repo        p.PostRepo
+	CommentRepo comment.CommentRepo
+	LikeRepo    like.LikeRepo
+	ShareRepo   share.ShareRepo
 }
 
-func NewPostController(service p.PostService, repo p.PostRepo) PostController {
+func NewPostController(
+	service p.PostService,
+	repo p.PostRepo,
+	commentRepo comment.CommentRepo,
+	likeRepo like.LikeRepo,
+	shareRepo share.ShareRepo,
+) PostController {
 	return &PostControllerImpl{
-		Service: service,
-		Repo:    repo,
+		Service:     service,
+		Repo:        repo,
+		CommentRepo: commentRepo,
+		LikeRepo:    likeRepo,
+		ShareRepo:   shareRepo,
 	}
 }
 
@@ -89,21 +102,17 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 		os.Remove(h.GetUploadDir(fileInfo.FileName))
 	}
 
-	if err := br.Broker.PublishMessage(context.Background(), br.POSTEXCHANGE, br.NEWPOSTQUEUE, "application/json", br.PostDocument{
-		Id:           data.Id.Hex(),
-		UserId:       data.UserId,
-		Text:         data.Text,
-		AllowComment: data.AllowComment,
-		CreatedAt:    data.CreatedAt,
-		UpdatedAt:    data.UpdatedAt,
-		Tags:         data.Tags,
-		Privacy:      data.Privacy,
-		Media:        br.Media(data.Media),
-	}); err != nil {
-		//handle koneksi nya putus
-		web.AbortHttp(c, h.BadGateway)
-		return
-	}
+	// go br.Broker.PublishMessage(context.Background(), br.POSTEXCHANGE, br.NEWPOSTQUEUE, "application/json", br.PostDocument{
+	// 	Id:           data.Id.Hex(),
+	// 	UserId:       data.UserId,
+	// 	Text:         data.Text,
+	// 	AllowComment: data.AllowComment,
+	// 	CreatedAt:    data.CreatedAt,
+	// 	UpdatedAt:    data.UpdatedAt,
+	// 	Tags:         data.Tags,
+	// 	Privacy:      data.Privacy,
+	// 	Media:        br.Media(data.Media),
+	// })
 
 	data.Text = h.Decryption(data.Text)
 
@@ -150,8 +159,7 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	ctx := mongo.NewSessionContext(context.Background(), session)
 	var wg sync.WaitGroup
 	errCh := make(chan error)
-	filter := bson.M{"postId": data.Id}
-	wg.Add(6)
+	wg.Add(5)
 	runRountine := func(f func()) {
 		defer wg.Done()
 		f()
@@ -161,57 +169,42 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 		pc.Service.DeletePostMedia(ctx, data, errCh)
 	})
 	go runRountine(func() {
-		errCh <- b.NewBaseRepo(b.GetCollection(b.Like)).DeleteMany(ctx, filter)
+		errCh <- pc.LikeRepo.DeletePostLikes(ctx, data.Id)
 	})
 	go runRountine(func() {
-		errCh <- b.NewBaseRepo(b.GetCollection(b.Comment)).DeleteMany(ctx, filter)
+		errCh <- pc.CommentRepo.DeleteMany(ctx, data.Id)
 	})
 	go runRountine(func() {
 		errCh <- pc.Repo.DeleteOne(ctx, data.Id)
 	})
 	go runRountine(func() {
-		errCh <- b.NewBaseRepo(b.GetCollection(b.Share)).DeleteMany(ctx, filter)
-	})
-	go runRountine(func() {
-		errCh <- reply.NewReplyRepo().DeleteReplyByPostId(ctx, data.Id)
+		errCh <- pc.ShareRepo.DeleteMany(ctx, data.Id)
 	})
 
-	flag := false
-	var errDb error
-	for i := 0; i < 6; i++ {
-		select {
-		case err := <-errCh:
-			{
-				if err != nil && !flag {
-					flag = true
-					errDb = err
-				}
-			}
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	for err := range errCh {
+		if err != nil {
+			session.AbortTransaction(ctx)
+			web.AbortHttp(c, err)
+			return
 		}
 	}
 
-	wg.Wait()
-	if flag {
-		session.AbortTransaction(ctx)
-		web.AbortHttp(c, errDb)
-		return
-	}
-
-	if err := br.Broker.PublishMessage(ctx, br.POSTEXCHANGE, br.DELETEPOSTQUEUE, "application/json", br.PostDocument{
-		Id:           data.Id.Hex(),
-		UserId:       data.UserId,
-		Text:         data.Text,
-		AllowComment: data.AllowComment,
-		CreatedAt:    data.CreatedAt,
-		UpdatedAt:    data.UpdatedAt,
-		Tags:         data.Tags,
-		Privacy:      data.Privacy,
-		Media:        br.Media(data.Media),
-	}); err != nil {
-		session.AbortTransaction(ctx)
-		web.AbortHttp(c, h.BadGateway)
-		return
-	}
+	// go br.Broker.PublishMessage(ctx, br.POSTEXCHANGE, br.DELETEPOSTQUEUE, "application/json", br.PostDocument{
+	// 	Id:           data.Id.Hex(),
+	// 	UserId:       data.UserId,
+	// 	Text:         data.Text,
+	// 	AllowComment: data.AllowComment,
+	// 	CreatedAt:    data.CreatedAt,
+	// 	UpdatedAt:    data.UpdatedAt,
+	// 	Tags:         data.Tags,
+	// 	Privacy:      data.Privacy,
+	// 	Media:        br.Media(data.Media),
+	// })
 
 	if err := session.CommitTransaction(ctx); err != nil {
 		session.AbortTransaction(ctx)
@@ -234,45 +227,61 @@ func (pc *PostControllerImpl) BulkCreatePost(c *gin.Context) {
 	var datas web.PostDatas
 	c.ShouldBind(&datas)
 
-	var posts []web.PostData
+	var posts []models.Post
+	var wg sync.WaitGroup
 	for _, data := range datas.Datas {
-		if data.UserId != "" {
+		wg.Add(1)
+		go func(data web.PostData) {
+			defer wg.Done()
+			t, _ := time.Parse("2006-01-02T15:04:05Z07:00", data.CreatedAt)
+			u, _ := time.Parse("2006-01-02T15:04:05Z07:00", data.UpdatedAt)
 			data.Text = h.Encryption(data.Text)
-			posts = append(posts, data)
-		}
+			posts = append(posts, models.Post{
+				UserId: data.UserId,
+				Text:   h.Encryption(data.Text),
+				Media: models.Media{
+					Url:  data.Media.Url,
+					Id:   data.Media.Id,
+					Type: data.Media.Type,
+				},
+				AllowComment: data.AllowComment,
+				Tags:         []string{},
+				Privacy:      data.Privacy,
+				CreatedAt:    t,
+				UpdatedAt:    u,
+			})
+		}(data)
 	}
+	wg.Wait()
 
 	pc.Service.InsertManyAndBindIds(context.Background(), posts)
 
-	var postDocuments []br.PostDocument
-	for _, post := range posts {
-		postDocuments = append(postDocuments, br.PostDocument{
-			Id:           post.Id.Hex(),
-			UserId:       post.UserId,
-			Text:         post.Text,
-			AllowComment: post.AllowComment,
-			CreatedAt:    time.Now(),
-			UpdatedAt:    time.Now(),
-			Tags:         []string{},
-			Privacy:      post.Privacy,
-			Media: br.Media{
-				Url:  post.Media.Url,
-				Id:   post.Media.Id,
-				Type: post.Media.Type,
-			},
-		})
-	}
+	// var postDocuments []br.PostDocument
+	// for _, post := range posts {
+	// 	postDocuments = append(postDocuments, br.PostDocument{
+	// 		Id:           post.Id.Hex(),
+	// 		UserId:       post.UserId,
+	// 		Text:         post.Text,
+	// 		AllowComment: post.AllowComment,
+	// 		CreatedAt:    post.CreatedAt,
+	// 		UpdatedAt:    post.UpdatedAt,
+	// 		Tags:         []string{},
+	// 		Privacy:      post.Privacy,
+	// 		Media: br.Media{
+	// 			Url:  post.Media.Url,
+	// 			Id:   post.Media.Id,
+	// 			Type: post.Media.Type,
+	// 		},
+	// 	})
+	// }
 
-	if err := br.Broker.PublishMessage(
-		context.Background(),
-		br.POSTEXCHANGE,
-		br.BULKPOSTQUEUE,
-		"application/json",
-		&postDocuments,
-	); err != nil {
-		web.AbortHttp(c, h.BadGateway)
-		return
-	}
+	// go br.Broker.PublishMessage(
+	// 	context.Background(),
+	// 	br.POSTEXCHANGE,
+	// 	br.BULKPOSTQUEUE,
+	// 	"application/json",
+	// 	&postDocuments,
+	// )
 
 	web.WriteResponse(c, web.WebResponse{
 		Code:    201,

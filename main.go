@@ -10,6 +10,7 @@ import (
 	l "github.com/post-services/pkg/like"
 	p "github.com/post-services/pkg/post"
 	r "github.com/post-services/pkg/reply"
+	"github.com/post-services/pkg/share"
 	"github.com/post-services/routes"
 	tp "github.com/post-services/third-party"
 	v "github.com/post-services/validations"
@@ -23,17 +24,15 @@ func main() {
 	validate := v.GetValidator()
 	imageKit := tp.ImageKitConnection()
 
-	postRepo := p.NewPostRepo()
-	postController := c.NewPostController(p.NewPostService(postRepo, validate, imageKit), postRepo)
-
+	shareRepo := share.NewShareRepo()
 	likeRepo := l.NewLikeRepo()
-	likeController := c.NewLikeController(l.NewLikeService(likeRepo, validate), likeRepo)
-
 	commentRepo := com.NewCommentRepo()
-	commentController := c.NewCommentController(com.NewCommentService(commentRepo, validate), commentRepo)
+	postRepo := p.NewPostRepo()
 
-	replyRepo := r.NewReplyRepo()
-	replyController := c.NewReplyController(r.NewReplyService(replyRepo, validate), replyRepo)
+	postController := c.NewPostController(p.NewPostService(postRepo, validate, imageKit), postRepo, commentRepo, likeRepo, shareRepo)
+	likeController := c.NewLikeController(l.NewLikeService(likeRepo, validate), likeRepo)
+	commentController := c.NewCommentController(com.NewCommentService(commentRepo, validate), commentRepo)
+	replyController := c.NewReplyController(r.NewReplyService(commentRepo, validate), commentRepo)
 
 	routes.NewRouter(
 		postController,

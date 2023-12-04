@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	h "github.com/post-services/helper"
+	"github.com/post-services/models"
 	m "github.com/post-services/models"
 	tp "github.com/post-services/third-party"
 	"github.com/post-services/web"
@@ -16,7 +17,7 @@ type PostService interface {
 	ValidatePostInput(data *web.PostForm) error
 	CreatePostPayload(ctx context.Context, data *web.PostForm, user m.User, file tp.UploadFile) (m.Post, error)
 	DeletePostMedia(ctx context.Context, post m.Post, ch chan<- error)
-	InsertManyAndBindIds(ctx context.Context, datas []web.PostData) error
+	InsertManyAndBindIds(ctx context.Context, datas []models.Post) error
 }
 
 type PostServiceImpl struct {
@@ -86,7 +87,7 @@ func (ps *PostServiceImpl) DeletePostMedia(ctx context.Context, post m.Post, ch 
 	}
 }
 
-func (ps *PostServiceImpl) InsertManyAndBindIds(ctx context.Context, datas []web.PostData) error {
+func (ps *PostServiceImpl) InsertManyAndBindIds(ctx context.Context, datas []models.Post) error {
 	var payload []any
 
 	for _, data := range datas {

@@ -2,11 +2,13 @@ package controller
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	br "github.com/post-services/broker"
 	h "github.com/post-services/helper"
+	"github.com/post-services/models"
 	m "github.com/post-services/models"
 	b "github.com/post-services/pkg/base"
 	"github.com/post-services/pkg/comment"
@@ -130,40 +132,51 @@ func (pc *CommentControllerImpl) BulkComment(c *gin.Context) {
 	var datas web.CommentDatas
 	c.ShouldBind(&datas)
 
-	var comments []web.CommentData
+	var comments []models.Comment
+	var wg sync.WaitGroup
 	for _, data := range datas.Datas {
-		postId, _ := primitive.ObjectIDFromHex(data.PostId.Hex())
-		if data.UserId != "" && postId != primitive.NilObjectID {
-			data.Text = h.Encryption(data.Text)
-			data.PostId = postId
-			comments = append(comments, data)
-		}
+		wg.Add(1)
+		go func(data web.CommentData) {
+			defer wg.Done()
+			postId, _ := primitive.ObjectIDFromHex(data.PostId.Hex())
+			t, _ := time.Parse("2006-01-02T15:04:05Z07:00", data.CreatedAt)
+			u, _ := time.Parse("2006-01-02T15:04:05Z07:00", data.UpdatedAt)
+			comments = append(comments, m.Comment{
+				PostId:    postId,
+				UserId:    data.UserId,
+				CreatedAt: t,
+				UpdatedAt: u,
+				Text:      h.Encryption(data.Text),
+				Reply:     []m.ReplyComment{},
+			})
+		}(data)
 	}
 
+	wg.Wait()
 	pc.Service.InsertManyAndBindIds(context.Background(), comments)
 
-	var commentDocuments []br.CommentDocumment
-	for _, comment := range comments {
-		commentDocuments = append(commentDocuments, br.CommentDocumment{
-			Id:        comment.Id.Hex(),
-			UserId:    comment.UserId,
-			PostId:    comment.PostId.Hex(),
-			Text:      comment.Text,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		})
-	}
+	// var commentDocuments []br.CommentDocumment
+	// for _, comment := range comments {
+	// 	commentDocuments = append(commentDocuments, br.CommentDocumment{
+	// 		Id:        comment.Id.Hex(),
+	// 		UserId:    comment.UserId,
+	// 		PostId:    comment.PostId.Hex(),
+	// 		Text:      comment.Text,
+	// 		CreatedAt: time.Now(),
+	// 		UpdatedAt: time.Now(),
+	// 	})
+	// }
 
-	if err := br.Broker.PublishMessage(
-		context.Background(),
-		br.COMMENTEXCHANGE,
-		br.BULKCOMMENTQUEUE,
-		"application/json",
-		&commentDocuments,
-	); err != nil {
-		web.AbortHttp(c, h.BadGateway)
-		return
-	}
+	// if err := br.Broker.PublishMessage(
+	// 	context.Background(),
+	// 	br.COMMENTEXCHANGE,
+	// 	br.BULKCOMMENTQUEUE,
+	// 	"application/json",
+	// 	&commentDocuments,
+	// ); err != nil {
+	// 	web.AbortHttp(c, h.BadGateway)
+	// 	return
+	// }
 
 	web.WriteResponse(c, web.WebResponse{
 		Code:    201,

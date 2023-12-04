@@ -11,6 +11,6 @@ type Share struct {
 	UserId    string             `json:"userId" bson:"userId,omitempty"`
 	PostId    primitive.ObjectID `json:"postId" bson:"postId,omitempty"`
 	Text      string             `json:"text" bson:"text"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt time.Time          `json:"createdAt" bson:"createdAt"`
+	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedAt"`
 }

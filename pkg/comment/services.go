@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	h "github.com/post-services/helper"
+	"github.com/post-services/models"
 	m "github.com/post-services/models"
 	"github.com/post-services/web"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -15,7 +16,7 @@ type CommentService interface {
 	ValidateComment(data *web.CommentForm) error
 	CreatePayload(data web.CommentForm, postId primitive.ObjectID, userId string) m.Comment
 	AuthorizeDeleteComment(data m.Comment, user m.User) error
-	InsertManyAndBindIds(ctx context.Context, datas []web.CommentData) error
+	InsertManyAndBindIds(ctx context.Context, datas []models.Comment) error
 }
 
 type CommentServiceImpl struct {
@@ -52,7 +53,7 @@ func (ps *CommentServiceImpl) AuthorizeDeleteComment(data m.Comment, user m.User
 	return nil
 }
 
-func (ps *CommentServiceImpl) InsertManyAndBindIds(ctx context.Context, datas []web.CommentData) error {
+func (ps *CommentServiceImpl) InsertManyAndBindIds(ctx context.Context, datas []models.Comment) error {
 	var payload []any
 
 	for _, data := range datas {

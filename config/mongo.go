@@ -13,10 +13,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var DB *mongo.Database
+var (
+	DB *mongo.Database
+)
 
 func Connection() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("DATABASE_URL")))

@@ -10,5 +10,5 @@ func (r routes) replyRoutes(rg *gin.RouterGroup, rc controller.ReplyController) 
 	uri := rg.Group("/reply")
 
 	uri.POST("/:commentId", md.Authentication, rc.AddReply)
-	uri.DELETE("/:replyId", md.Authentication, rc.DeleteReply)
+	uri.DELETE("/:commentId/:replyId", md.Authentication, rc.DeleteReply)
 }

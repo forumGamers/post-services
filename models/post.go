@@ -16,10 +16,10 @@ type Post struct {
 	Id           primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 	UserId       string             `json:"userId" bson:"userId,omitempty"`
 	Text         string             `json:"text" bson:"text"`
-	Media        Media
-	AllowComment bool `json:"allowComment" bson:"allowComment" default:"true"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	Tags         []string `json:"tags" bson:"tags,omitempty"`
-	Privacy      string   `json:"privacy" bson:"privacy" default:"Public"`
+	Media        Media              `json:"media" bson:"media"`
+	AllowComment bool               `json:"allowComment" bson:"allowComment" default:"true"`
+	CreatedAt    time.Time          `json:"createdAt" bson:"createdAt"`
+	UpdatedAt    time.Time          `json:"updatedAt" bson:"updatedAt"`
+	Tags         []string           `json:"tags" bson:"tags,omitempty"`
+	Privacy      string             `json:"privacy" bson:"privacy" default:"Public"`
 }

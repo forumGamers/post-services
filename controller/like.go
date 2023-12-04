@@ -2,11 +2,12 @@ package controller
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	br "github.com/post-services/broker"
 	h "github.com/post-services/helper"
+	"github.com/post-services/models"
 	m "github.com/post-services/models"
 	b "github.com/post-services/pkg/base"
 	l "github.com/post-services/pkg/like"
@@ -72,16 +73,6 @@ func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 	}
 
 	newLike.Id = result
-	if err := br.Broker.PublishMessage(context.Background(), br.LIKEEXCHANGE, br.NEWLIKEQUEUE, "application/json", br.LikeDocument{
-		Id:        newLike.Id.Hex(),
-		UserId:    newLike.UserId,
-		PostId:    newLike.PostId.Hex(),
-		CreatedAt: newLike.CreatedAt,
-		UpdatedAt: newLike.UpdatedAt,
-	}); err != nil {
-		web.AbortHttp(c, h.BadGateway)
-		return
-	}
 
 	web.WriteResponse(c, web.WebResponse{
 		Code:    201,
@@ -110,17 +101,6 @@ func (lc *LikeControllerImpl) UnlikePost(c *gin.Context) {
 		return
 	}
 
-	if err := br.Broker.PublishMessage(context.Background(), br.LIKEEXCHANGE, br.DELETELIKEQUEUE, "application/json", br.LikeDocument{
-		Id:        like.Id.Hex(),
-		UserId:    like.UserId,
-		PostId:    like.PostId.Hex(),
-		CreatedAt: like.CreatedAt,
-		UpdatedAt: like.UpdatedAt,
-	}); err != nil {
-		web.AbortHttp(c, h.BadGateway)
-		return
-	}
-
 	web.WriteResponse(c, web.WebResponse{
 		Code:    200,
 		Message: "success",
@@ -136,38 +116,26 @@ func (lc *LikeControllerImpl) BulkLikes(c *gin.Context) {
 	var datas web.LikeDatas
 	c.ShouldBind(&datas)
 
-	var likes []web.LikeData
+	var likes []models.Like
+	var wg sync.WaitGroup
 	for _, like := range datas.Datas {
-		postId, _ := primitive.ObjectIDFromHex(like.PostId.Hex())
-		likes = append(likes, web.LikeData{
-			PostId: postId,
-			UserId: like.UserId,
-		})
+		wg.Add(1)
+		go func(like web.LikeData) {
+			defer wg.Done()
+			postId, _ := primitive.ObjectIDFromHex(like.PostId.Hex())
+			t, _ := time.Parse("2006-01-02T15:04:05Z07:00", like.CreatedAt)
+			u, _ := time.Parse("2006-01-02T15:04:05Z07:00", like.UpdatedAt)
+			likes = append(likes, models.Like{
+				PostId:    postId,
+				UserId:    like.UserId,
+				CreatedAt: t,
+				UpdatedAt: u,
+			})
+		}(like)
 	}
 
+	wg.Wait()
 	lc.Service.InsertManyAndBindIds(context.Background(), likes)
-
-	var likeDocument []br.LikeDocument
-	for _, like := range likes {
-		likeDocument = append(likeDocument, br.LikeDocument{
-			Id:        like.Id.Hex(),
-			UserId:    like.UserId,
-			PostId:    like.PostId.Hex(),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		})
-	}
-
-	if err := br.Broker.PublishMessage(
-		context.Background(),
-		br.LIKEEXCHANGE,
-		br.BULKLIKEQUEUE,
-		"application/json",
-		&likeDocument,
-	); err != nil {
-		web.AbortHttp(c, h.BadGateway)
-		return
-	}
 
 	web.WriteResponse(c, web.WebResponse{
 		Code:    201,
