@@ -191,3 +191,12 @@ func (w *ResponseWriterImpl) Write200Response(c *gin.Context, msg string, data a
 		data,
 	})
 }
+
+func (w *ResponseWriterImpl) Write201Response(c *gin.Context, msg string, data any) {
+	w.WriteResponse(c, WebResponse{
+		201,
+		w.getStatusMessage(201),
+		msg,
+		data,
+	})
+}

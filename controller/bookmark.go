@@ -56,5 +56,26 @@ func (bc *BookmarkControllerImpl) CreateBookmark(c *gin.Context) {
 		return
 	}
 
-	bc.Write200Response(c, "success", data)
+	bc.Write201Response(c, "success", data)
+}
+
+func (bc *BookmarkControllerImpl) DeleteBookmark(c *gin.Context) {
+	bookmarkId, err := primitive.ObjectIDFromHex(c.Param("bookmarkId"))
+	if err != nil {
+		bc.AbortHttp(c, bc.NewInvalidObjectIdError())
+		return
+	}
+
+	var data bookmark.Bookmark
+	if err := bc.Repo.FIndById(context.Background(), bookmarkId, &data); err != nil {
+		bc.AbortHttp(c, err)
+		return
+	}
+
+	if err := bc.Repo.DeleteOneById(context.Background(), data.Id); err != nil {
+		bc.AbortHttp(c, err)
+		return
+	}
+
+	bc.Write200Response(c, "success", nil)
 }

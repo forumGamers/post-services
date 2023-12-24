@@ -9,6 +9,7 @@ type ResponseWriter interface {
 	HttpValidationErr(c *gin.Context, err error)
 	New404Error(msg string) error
 	Write200Response(c *gin.Context, msg string, data any)
+	Write201Response(c *gin.Context, msg string, data any)
 	New403Error(msg string) error
 	New401Error(msg string) error
 	NewInvalidObjectIdError() error

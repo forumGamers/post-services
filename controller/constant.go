@@ -69,6 +69,7 @@ type CommentControllerImpl struct {
 
 type BookmarkController interface {
 	CreateBookmark(c *gin.Context)
+	DeleteBookmark(c *gin.Context)
 }
 
 type BookmarkControllerImpl struct {

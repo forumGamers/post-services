@@ -10,6 +10,8 @@ import (
 type BookmarkRepo interface {
 	CreateOne(ctx context.Context, data *Bookmark) error
 	FindOne(ctx context.Context, query any, result *Bookmark) error
+	FIndById(ctx context.Context, id primitive.ObjectID, result *Bookmark) error
+	DeleteOneById(ctx context.Context, id primitive.ObjectID) error
 }
 
 type BookmarkRepoImpl struct {
