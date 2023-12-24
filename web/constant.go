@@ -13,6 +13,7 @@ type ResponseWriter interface {
 	New401Error(msg string) error
 	NewInvalidObjectIdError() error
 	New400Error(msg string) error
+	New409Error(msg string) error
 }
 
 type ResponseWriterImpl struct{}

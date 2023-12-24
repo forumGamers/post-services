@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
-	h "github.com/post-services/helper"
 )
 
 func (m *MiddlewareImpl) Authentication(c *gin.Context) {
@@ -20,7 +19,7 @@ func (m *MiddlewareImpl) Authentication(c *gin.Context) {
 	if token, err := jwt.ParseWithClaims(access_token, &claim, func(t *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("SECRET")), nil
 	}); err != nil || !token.Valid {
-		m.AbortHttp(c, h.InvalidToken)
+		m.AbortHttp(c, m.New401Error("Invalid Token"))
 		return
 	}
 

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	cfg "github.com/post-services/config"
-	h "github.com/post-services/helper"
+	"github.com/post-services/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -41,7 +41,7 @@ func NewBaseRepo(db *mongo.Collection) *BaseRepoImpl {
 func (r *BaseRepoImpl) DeleteMany(ctx context.Context, filter any) error {
 	if _, err := r.DB.DeleteMany(ctx, filter); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return h.NotFount
+			return errors.NewError("Data not found", 404)
 		}
 		return err
 	}
@@ -53,7 +53,7 @@ func (r *BaseRepoImpl) DeleteOneById(ctx context.Context, id primitive.ObjectID)
 		"_id": id,
 	}); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return h.NotFount
+			return errors.NewError("Data not found", 404)
 		}
 		return err
 	}
@@ -65,7 +65,7 @@ func (r *BaseRepoImpl) FindOneById(ctx context.Context, id primitive.ObjectID, d
 		"_id": id,
 	}).Decode(data); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return h.NotFount
+			return errors.NewError("Data not found", 404)
 		}
 		return err
 	}

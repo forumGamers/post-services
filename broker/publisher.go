@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/post-services/errors"
 	h "github.com/post-services/helper"
 	"github.com/rabbitmq/amqp091-go"
 )
@@ -55,10 +56,10 @@ func BrokerConnection() {
 	conn, err := amqp091.DialConfig(rabbitMqServerUrl, amqp091.Config{
 		Heartbeat: 10,
 	})
-	h.PanicIfError(err)
+	errors.PanicIfError(err)
 
 	ch, err := conn.Channel()
-	h.PanicIfError(err)
+	errors.PanicIfError(err)
 
 	notifyClose := conn.NotifyClose(make(chan *amqp091.Error))
 	go func() {
@@ -111,7 +112,7 @@ func (ch *PublisherImpl) DeclareExchangeAndQueue() {
 		NEWSHAREQUEUE, DELETESHAREQUEUE,
 	}
 	for _, exchangeName := range exchanges {
-		h.PanicIfError(
+		errors.PanicIfError(
 			ch.Channel.ExchangeDeclare(
 				exchangeName,
 				"direct",
@@ -133,7 +134,7 @@ func (ch *PublisherImpl) DeclareExchangeAndQueue() {
 			false,
 			nil,
 		)
-		h.PanicIfError(err)
+		errors.PanicIfError(err)
 	}
 
 	for _, exchange := range exchanges {
@@ -152,7 +153,7 @@ func (ch *PublisherImpl) DeclareExchangeAndQueue() {
 
 func (ch *PublisherImpl) BindQueue(exchange string, queues []string) {
 	for _, queue := range queues {
-		h.PanicIfError(
+		errors.PanicIfError(
 			ch.Channel.QueueBind(
 				queue,
 				fmt.Sprintf("%s.%s", exchange, queue),

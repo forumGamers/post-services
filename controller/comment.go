@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	br "github.com/post-services/broker"
 	h "github.com/post-services/helper"
 	"github.com/post-services/models"
 	m "github.com/post-services/models"
@@ -23,7 +22,7 @@ func NewCommentController(service comment.CommentService, repo comment.CommentRe
 func (pc *CommentControllerImpl) CreateComment(c *gin.Context) {
 	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
 	if err != nil {
-		pc.AbortHttp(c, h.ErrInvalidObjectId)
+		pc.AbortHttp(c, pc.NewInvalidObjectIdError())
 		return
 	}
 
@@ -47,17 +46,17 @@ func (pc *CommentControllerImpl) CreateComment(c *gin.Context) {
 		return
 	}
 
-	if err := br.Broker.PublishMessage(context.Background(), br.COMMENTEXCHANGE, br.NEWCOMMENTQUEUE, "application/json", br.CommentDocumment{
-		Id:        comment.Id.Hex(),
-		UserId:    comment.UserId,
-		Text:      comment.Text,
-		PostId:    comment.PostId.Hex(),
-		CreatedAt: comment.CreatedAt,
-		UpdatedAt: comment.UpdatedAt,
-	}); err != nil {
-		pc.AbortHttp(c, h.BadGateway)
-		return
-	}
+	// if err := br.Broker.PublishMessage(context.Background(), br.COMMENTEXCHANGE, br.NEWCOMMENTQUEUE, "application/json", br.CommentDocumment{
+	// 	Id:        comment.Id.Hex(),
+	// 	UserId:    comment.UserId,
+	// 	Text:      comment.Text,
+	// 	PostId:    comment.PostId.Hex(),
+	// 	CreatedAt: comment.CreatedAt,
+	// 	UpdatedAt: comment.UpdatedAt,
+	// }); err != nil {
+	// 	pc.AbortHttp(c, h.BadGateway)
+	// 	return
+	// }
 
 	comment.Text = h.Decryption(comment.Text)
 
@@ -71,7 +70,7 @@ func (pc *CommentControllerImpl) CreateComment(c *gin.Context) {
 func (pc *CommentControllerImpl) DeleteComment(c *gin.Context) {
 	commentId, err := primitive.ObjectIDFromHex(c.Param("commentId"))
 	if err != nil {
-		pc.AbortHttp(c, h.ErrInvalidObjectId)
+		pc.AbortHttp(c, pc.NewInvalidObjectIdError())
 		return
 	}
 
@@ -91,17 +90,17 @@ func (pc *CommentControllerImpl) DeleteComment(c *gin.Context) {
 		return
 	}
 
-	if err := br.Broker.PublishMessage(context.Background(), br.COMMENTEXCHANGE, br.DELETECOMMENTQUEUE, "application/json", br.CommentDocumment{
-		Id:        comment.Id.Hex(),
-		UserId:    comment.UserId,
-		Text:      comment.Text,
-		PostId:    comment.PostId.Hex(),
-		CreatedAt: comment.CreatedAt,
-		UpdatedAt: comment.UpdatedAt,
-	}); err != nil {
-		pc.AbortHttp(c, h.BadGateway)
-		return
-	}
+	// if err := br.Broker.PublishMessage(context.Background(), br.COMMENTEXCHANGE, br.DELETECOMMENTQUEUE, "application/json", br.CommentDocumment{
+	// 	Id:        comment.Id.Hex(),
+	// 	UserId:    comment.UserId,
+	// 	Text:      comment.Text,
+	// 	PostId:    comment.PostId.Hex(),
+	// 	CreatedAt: comment.CreatedAt,
+	// 	UpdatedAt: comment.UpdatedAt,
+	// }); err != nil {
+	// 	pc.AbortHttp(c, h.BadGateway)
+	// 	return
+	// }
 
 	pc.WriteResponse(c, web.WebResponse{
 		Code:    200,

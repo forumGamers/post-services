@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/post-services/errors"
 	h "github.com/post-services/helper"
 	"github.com/post-services/models"
 	m "github.com/post-services/models"
@@ -59,7 +60,7 @@ func (ps *PostServiceImpl) CreatePostPayload(
 	result := <-imageKitCh
 
 	if result.Error != nil {
-		return m.Post{}, h.BadGateway
+		return m.Post{}, errors.NewError("Bad gateway", 502)
 	}
 
 	return m.Post{

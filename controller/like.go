@@ -22,7 +22,7 @@ func NewLikeController(service l.LikeService, repo l.LikeRepo, r web.RequestRead
 func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
 	if err != nil {
-		lc.AbortHttp(c, h.ErrInvalidObjectId)
+		lc.AbortHttp(c, lc.NewInvalidObjectIdError())
 		return
 	}
 
@@ -35,14 +35,14 @@ func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 
 	var like m.Like
 	if err := lc.Repo.GetLikesByUserIdAndPostId(context.Background(), postId, id, &like); err != nil {
-		if err != h.NotFount {
+		if err != nil {
 			lc.AbortHttp(c, err)
 			return
 		}
 	}
 
 	if like.Id != primitive.NilObjectID {
-		lc.AbortHttp(c, h.Conflict)
+		lc.AbortHttp(c, lc.New409Error("Conflict"))
 		return
 	}
 
@@ -70,7 +70,7 @@ func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 func (lc *LikeControllerImpl) UnlikePost(c *gin.Context) {
 	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
 	if err != nil {
-		lc.AbortHttp(c, h.ErrInvalidObjectId)
+		lc.AbortHttp(c, lc.NewInvalidObjectIdError())
 		return
 	}
 

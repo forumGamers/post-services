@@ -5,7 +5,7 @@ import (
 	"github.com/post-services/broker"
 	cfg "github.com/post-services/config"
 	c "github.com/post-services/controller"
-	h "github.com/post-services/helper"
+	"github.com/post-services/errors"
 	md "github.com/post-services/middlewares"
 	com "github.com/post-services/pkg/comment"
 	l "github.com/post-services/pkg/like"
@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	h.PanicIfError(godotenv.Load())
+	errors.PanicIfError(godotenv.Load())
 	cfg.Connection()
 	broker.BrokerConnection()
 

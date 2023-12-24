@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	c "github.com/post-services/controller"
-	h "github.com/post-services/helper"
+	"github.com/post-services/errors"
 	md "github.com/post-services/middlewares"
 )
 
@@ -23,7 +23,7 @@ func NewRouter(
 	comment c.CommentController,
 	reply c.ReplyController,
 ) {
-	h.PanicIfError(godotenv.Load())
+	errors.PanicIfError(godotenv.Load())
 
 	r := routes{router: gin.Default()}
 

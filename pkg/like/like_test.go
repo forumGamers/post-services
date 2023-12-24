@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	h "github.com/post-services/helper"
+	"github.com/post-services/errors"
 	m "github.com/post-services/models"
 	l "github.com/post-services/pkg/like"
 	v "github.com/post-services/validations"
@@ -32,12 +32,12 @@ func TestGetLikesByUserIdAndPostId_NotFound(t *testing.T) {
 	postId, _ := primitive.ObjectIDFromHex("64e2ff258c78c4a3ff840e9d")
 	userId := "1"
 	var data m.Like
-	mockRepo.Mock.On("GetLikesByUserIdAndPostId", ctx, postId, userId, &data).Return(h.NotFount)
+	mockRepo.Mock.On("GetLikesByUserIdAndPostId", ctx, postId, userId, &data).Return(errors.NewError("Data not found", 404))
 
 	err := mockService.Repo.GetLikesByUserIdAndPostId(ctx, postId, userId, &data)
 
 	assert.NotNil(t, err)
-	assert.Equal(t, h.NotFount, err, "Error must be not found error")
+	assert.Equal(t, errors.NewError("Data not found", 404), err, "Error must be not found error")
 }
 
 func TestGetLikesByUserIdAndPostId_Success(t *testing.T) {

@@ -3,7 +3,7 @@ package like
 import (
 	"context"
 
-	h "github.com/post-services/helper"
+	"github.com/post-services/errors"
 	m "github.com/post-services/models"
 	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -23,8 +23,8 @@ func (r *LikeRepoMockImpl) GetLikesByUserIdAndPostId(ctx context.Context, postId
 	switch args.Get(0) {
 	case nil:
 		return nil
-	case h.NotFount:
-		return h.NotFount
+	case errors.NewError("Data not found", 404):
+		return errors.NewError("Data not found", 404)
 	default:
 		return nil
 	}

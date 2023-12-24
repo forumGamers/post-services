@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/post-services/errors"
 	h "github.com/post-services/helper"
 	m "github.com/post-services/models"
 	"github.com/post-services/pkg/comment"
@@ -44,7 +45,7 @@ func (rs *ReplyServiceImpl) CreatePayload(data web.CommentForm, userId string) m
 func (rs *ReplyServiceImpl) AuthorizeDeleteReply(data m.ReplyComment, user m.User) error {
 	//nanti yang punya post juga bisa hapus
 	if user.UUID != data.UserId || user.LoggedAs != "Admin" {
-		return h.AccessDenied
+		return errors.NewError("unauthorized", 401)
 	}
 	return nil
 }

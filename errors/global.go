@@ -14,6 +14,10 @@ func NewError(msg string, code int) error {
 		return &unauthorizedError{msg, code}
 	case 404:
 		return &dataNotFoundError{msg, code}
+	case 409:
+		return &conflictError{msg, code}
+	case 502:
+		return &badGatewayError{msg, code}
 	default:
 		return &internalServerError{msg, 500}
 	}
@@ -29,6 +33,8 @@ func GetErrorMsg(err error) (string, int) {
 		return e.msg, e.StatusCode
 	case *invalidObjectId:
 		return e.Error(), 400
+	case *conflictError:
+		return e.Error(), 409
 	default:
 		return "Internal Server Error", 500
 	}

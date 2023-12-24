@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/post-services/errors"
 	h "github.com/post-services/helper"
 	"github.com/post-services/models"
 	m "github.com/post-services/models"
@@ -25,10 +26,7 @@ type CommentServiceImpl struct {
 }
 
 func NewCommentService(repo CommentRepo, validate *validator.Validate) CommentService {
-	return &CommentServiceImpl{
-		Repo:     repo,
-		Validate: validate,
-	}
+	return &CommentServiceImpl{repo, validate}
 }
 
 func (ps *CommentServiceImpl) ValidateComment(data *web.CommentForm) error {
@@ -48,7 +46,7 @@ func (ps *CommentServiceImpl) CreatePayload(data web.CommentForm, postId primiti
 func (ps *CommentServiceImpl) AuthorizeDeleteComment(data m.Comment, user m.User) error {
 	//nanti yang punya post juga bisa hapus
 	if user.UUID != data.UserId || user.LoggedAs != "Admin" {
-		return h.AccessDenied
+		return errors.NewError("unauthorized", 401)
 	}
 	return nil
 }

@@ -25,7 +25,7 @@ func NewReplyController(
 func (rc *ReplyControllerImpl) AddReply(c *gin.Context) {
 	commentId, err := primitive.ObjectIDFromHex(c.Param("commentId"))
 	if err != nil {
-		rc.AbortHttp(c, h.ErrInvalidObjectId)
+		rc.AbortHttp(c, rc.NewInvalidObjectIdError())
 		return
 	}
 
@@ -73,12 +73,12 @@ func (rc *ReplyControllerImpl) AddReply(c *gin.Context) {
 func (rc *ReplyControllerImpl) DeleteReply(c *gin.Context) {
 	replyId, err := primitive.ObjectIDFromHex(c.Param("replyId"))
 	if err != nil {
-		rc.AbortHttp(c, h.ErrInvalidObjectId)
+		rc.AbortHttp(c, rc.NewInvalidObjectIdError())
 		return
 	}
 	commentId, err := primitive.ObjectIDFromHex(c.Param("commentId"))
 	if err != nil {
-		rc.AbortHttp(c, h.ErrInvalidObjectId)
+		rc.AbortHttp(c, rc.NewInvalidObjectIdError())
 		return
 	}
 

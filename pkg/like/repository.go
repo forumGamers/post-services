@@ -3,7 +3,7 @@ package like
 import (
 	"context"
 
-	h "github.com/post-services/helper"
+	"github.com/post-services/errors"
 	m "github.com/post-services/models"
 	b "github.com/post-services/pkg/base"
 	"go.mongodb.org/mongo-driver/bson"
@@ -39,7 +39,7 @@ func (r *LikeRepoImpl) GetLikesByUserIdAndPostId(ctx context.Context, postId pri
 		"postId": postId,
 	}).Decode(&result); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return h.NotFount
+			return errors.NewError("Data not found", 404)
 		}
 		return err
 	}
@@ -60,7 +60,7 @@ func (r *LikeRepoImpl) DeleteLike(ctx context.Context, postId primitive.ObjectID
 		"userId": userId,
 	}); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return h.NotFount
+			return errors.NewError("Data not found", 404)
 		}
 		return err
 	}

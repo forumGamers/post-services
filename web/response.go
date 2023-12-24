@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/post-services/errors"
-	h "github.com/post-services/helper"
 )
 
 type WebResponse struct {
@@ -97,36 +96,13 @@ func (w *ResponseWriterImpl) getStatusMessage(status int) string {
 	return statusMessages[status]
 }
 
-func getErrorMsg(err error) (string, int) {
-	switch err.Error() {
-	case "Data not found":
-		return err.Error(), 404
-	case h.ErrInvalidObjectId.Error():
-		return h.ErrInvalidObjectId.Error(), 400
-	case h.Forbidden.Error():
-		return h.Forbidden.Error(), 403
-	case h.Conflict.Error():
-		return h.Conflict.Error(), 409
-	case h.BadGateway.Error():
-		return h.BadGateway.Error(), 502
-	case h.InvalidChiper.Error():
-		return h.InvalidChiper.Error(), 500
-	case h.InvalidToken.Error():
-		return h.InvalidToken.Error(), 401
-	case h.AccessDenied.Error():
-		return h.AccessDenied.Error(), 401
-	default:
-		return "Internal Server Error", 500
-	}
-}
-
 func (w *ResponseWriterImpl) WriteResponse(c *gin.Context, response WebResponse) {
 	response.Status = w.getStatusMessage(response.Code)
 	c.JSON(response.Code, response)
 }
 
 func (w *ResponseWriterImpl) AbortHttp(c *gin.Context, err error) {
-	msg, code := getErrorMsg(err)
+	msg, code := errors.GetErrorMsg(err)
 
 	c.AbortWithStatusJSON(code, WebResponse{
 		Status:  w.getStatusMessage(code),
@@ -193,6 +169,10 @@ func (w *ResponseWriterImpl) New403Error(msg string) error {
 
 func (w *ResponseWriterImpl) New401Error(msg string) error {
 	return errors.NewError(msg, 401)
+}
+
+func (w *ResponseWriterImpl) New409Error(msg string) error {
+	return errors.NewError(msg, 409)
 }
 
 func (w *ResponseWriterImpl) New400Error(msg string) error {

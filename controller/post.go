@@ -56,12 +56,12 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 		var err error = nil
 		fileInfo.Media, fileInfo.SavedFile, err = h.SaveUploadedFile(c, form.File)
 		if err != nil {
-			panic(err.Error())
+			pc.New400Error(err.Error())
 		}
 
 		fileInfo.FolderName, err = h.CheckFileType(form.File)
 		if err != nil {
-			panic(err.Error())
+			pc.New400Error(err.Error())
 		}
 
 		fileInfo.FolderName = "post_" + fileInfo.FolderName
@@ -110,7 +110,7 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
 	if err != nil {
-		pc.AbortHttp(c, h.ErrInvalidObjectId)
+		pc.AbortHttp(c, pc.NewInvalidObjectIdError())
 		return
 	}
 
@@ -123,7 +123,7 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	user := h.GetUser(c)
 
 	if data.UserId != user.UUID || user.LoggedAs != "Admin" {
-		pc.AbortHttp(c, h.Forbidden)
+		pc.AbortHttp(c, pc.New403Error("Forbidden"))
 		return
 	}
 

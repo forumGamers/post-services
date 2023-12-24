@@ -26,4 +26,14 @@ type dataNotFoundError struct {
 	StatusCode int
 }
 
+type conflictError struct {
+	msg        string
+	StatusCode int
+}
+
+type badGatewayError struct {
+	msg        string
+	StatusCode int
+}
+
 type invalidObjectId struct{}

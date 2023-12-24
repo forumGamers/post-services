@@ -5,13 +5,13 @@ import (
 	"os"
 
 	"github.com/codedius/imagekit-go"
-	h "github.com/post-services/helper"
+	"github.com/post-services/errors"
 )
 
 type ImageKitService interface {
-	UploadFile(ctx context.Context,file []byte,fileName string,folder string) ImageKitResult
-	UpdateImage(ctx context.Context,file []byte,fileName string,folder string,updatedFileID string,resultCh chan<- ImageKitResult)
-	Delete(ctx context.Context,imageId string,ch chan<- error)
+	UploadFile(ctx context.Context, file []byte, fileName string, folder string) ImageKitResult
+	UpdateImage(ctx context.Context, file []byte, fileName string, folder string, updatedFileID string, resultCh chan<- ImageKitResult)
+	Delete(ctx context.Context, imageId string, ch chan<- error)
 }
 
 type ImageKit struct {
@@ -25,51 +25,51 @@ type ImageKitResult struct {
 }
 
 type UploadFile struct {
-	Data []byte
-	Name string
-	Folder string 
+	Data   []byte
+	Name   string
+	Folder string
 }
 
 func ImageKitConnection() ImageKitService {
 	opts := imagekit.Options{
-		PublicKey: os.Getenv("IMAGEKIT_PUBLIC_KEY"),
+		PublicKey:  os.Getenv("IMAGEKIT_PUBLIC_KEY"),
 		PrivateKey: os.Getenv("IMAGEKIT_PRIVATE_KEY"),
 	}
 
-	ik,err := imagekit.NewClient(&opts)
-	h.PanicIfError(err)
+	ik, err := imagekit.NewClient(&opts)
+	errors.PanicIfError(err)
 
 	return &ImageKit{
 		Client: ik,
 	}
 }
 
-func (ik *ImageKit) UploadFile(ctx context.Context,file []byte,fileName string,folder string) ImageKitResult {
+func (ik *ImageKit) UploadFile(ctx context.Context, file []byte, fileName string, folder string) ImageKitResult {
 	uploadRequest := imagekit.UploadRequest{
 		File:              file,
 		FileName:          fileName,
 		UseUniqueFileName: true,
 		Folder:            folder,
 	}
-	uploadResponse, err := ik.Client.Upload.ServerUpload(ctx,&uploadRequest)
+	uploadResponse, err := ik.Client.Upload.ServerUpload(ctx, &uploadRequest)
 
 	return ImageKitResult{
-		Url: uploadResponse.URL,
+		Url:    uploadResponse.URL,
 		FileId: uploadResponse.FileID,
-		Error: err,
+		Error:  err,
 	}
 }
 
-func (ik *ImageKit) UpdateImage(ctx context.Context,file []byte,fileName string,folder string,updatedFileID string,ch chan<- ImageKitResult){
-	go func(){
-		ch <- ik.UploadFile(ctx,file,fileName,folder)
+func (ik *ImageKit) UpdateImage(ctx context.Context, file []byte, fileName string, folder string, updatedFileID string, ch chan<- ImageKitResult) {
+	go func() {
+		ch <- ik.UploadFile(ctx, file, fileName, folder)
 	}()
 
-	go func(){
-		ik.Client.Media.DeleteFile(ctx,updatedFileID)
+	go func() {
+		ik.Client.Media.DeleteFile(ctx, updatedFileID)
 	}()
 }
 
-func (ik *ImageKit) Delete(ctx context.Context,imageId string,ch chan<- error) {
-	ch <- ik.Client.Media.DeleteFile(ctx,imageId) 
+func (ik *ImageKit) Delete(ctx context.Context, imageId string, ch chan<- error) {
+	ch <- ik.Client.Media.DeleteFile(ctx, imageId)
 }
