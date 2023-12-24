@@ -3,8 +3,17 @@ package web
 import (
 	"mime/multipart"
 
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+func NewRequestReader() RequestReader {
+	return &RequestReaderImpl{}
+}
+
+func (r *RequestReaderImpl) GetParams(c *gin.Context, p any) error {
+	return c.ShouldBind(p)
+}
 
 type PostForm struct {
 	File         *multipart.FileHeader `form:"file" validate:"required_without=Text"`

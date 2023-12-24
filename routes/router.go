@@ -17,6 +17,7 @@ type routes struct {
 
 // add limiter
 func NewRouter(
+	middleware md.Middleware,
 	post c.PostController,
 	like c.LikeController,
 	comment c.CommentController,
@@ -26,16 +27,16 @@ func NewRouter(
 
 	r := routes{router: gin.Default()}
 
-	r.router.Use(md.CheckOrigin)
-	r.router.Use(md.Cors())
+	r.router.Use(middleware.CheckOrigin)
+	r.router.Use(middleware.Cors())
 	r.router.Use(logger.SetLogger())
 
 	groupRoutes := r.router.Group("/api/v1")
 
-	r.postRoutes(groupRoutes, post)
-	r.likeRoutes(groupRoutes, like)
-	r.commentRoutes(groupRoutes, comment)
-	r.replyRoutes(groupRoutes, reply)
+	r.postRoutes(groupRoutes, post, middleware)
+	r.likeRoutes(groupRoutes, like, middleware)
+	r.commentRoutes(groupRoutes, comment, middleware)
+	r.replyRoutes(groupRoutes, reply, middleware)
 
 	port := os.Getenv("PORT")
 

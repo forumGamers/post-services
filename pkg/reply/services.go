@@ -23,8 +23,8 @@ type ReplyServiceImpl struct {
 
 func NewReplyService(repo comment.CommentRepo, validate *validator.Validate) ReplyService {
 	return &ReplyServiceImpl{
-		Repo:     repo,
-		Validate: validate,
+		repo,
+		validate,
 	}
 }
 

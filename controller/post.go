@@ -21,42 +21,26 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type PostController interface {
-	CreatePost(c *gin.Context)
-	DeletePost(c *gin.Context)
-	BulkCreatePost(c *gin.Context)
-}
-
-type PostControllerImpl struct {
-	Service     p.PostService
-	Repo        p.PostRepo
-	CommentRepo comment.CommentRepo
-	LikeRepo    like.LikeRepo
-	ShareRepo   share.ShareRepo
-}
-
 func NewPostController(
 	service p.PostService,
 	repo p.PostRepo,
 	commentRepo comment.CommentRepo,
 	likeRepo like.LikeRepo,
 	shareRepo share.ShareRepo,
+	r web.RequestReader,
+	w web.ResponseWriter,
 ) PostController {
 	return &PostControllerImpl{
-		Service:     service,
-		Repo:        repo,
-		CommentRepo: commentRepo,
-		LikeRepo:    likeRepo,
-		ShareRepo:   shareRepo,
+		w, r, service, repo, commentRepo, likeRepo, shareRepo,
 	}
 }
 
 func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 	var form web.PostForm
-	c.ShouldBind(&form)
+	pc.GetParams(c, &form)
 
 	if err := pc.Service.ValidatePostInput(&form); err != nil {
-		web.HttpValidationErr(c, err)
+		pc.HttpValidationErr(c, err)
 		return
 	}
 
@@ -91,7 +75,7 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 	})
 
 	if err != nil {
-		web.AbortHttp(c, err)
+		pc.AbortHttp(c, err)
 		return
 	}
 
@@ -116,7 +100,7 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 
 	data.Text = h.Decryption(data.Text)
 
-	web.WriteResponse(c, web.WebResponse{
+	pc.WriteResponse(c, web.WebResponse{
 		Code:    201,
 		Message: "Success",
 		Data:    data,
@@ -126,33 +110,33 @@ func (pc *PostControllerImpl) CreatePost(c *gin.Context) {
 func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	postId, err := primitive.ObjectIDFromHex(c.Param("postId"))
 	if err != nil {
-		web.AbortHttp(c, h.ErrInvalidObjectId)
+		pc.AbortHttp(c, h.ErrInvalidObjectId)
 		return
 	}
 
 	var data m.Post
 	if err := pc.Repo.FindById(context.Background(), postId, &data); err != nil {
-		web.AbortHttp(c, err)
+		pc.AbortHttp(c, err)
 		return
 	}
 
 	user := h.GetUser(c)
 
 	if data.UserId != user.UUID || user.LoggedAs != "Admin" {
-		web.AbortHttp(c, h.Forbidden)
+		pc.AbortHttp(c, h.Forbidden)
 		return
 	}
 
 	session, err := pc.Repo.GetSession()
 	if err != nil {
-		web.AbortHttp(c, err)
+		pc.AbortHttp(c, err)
 		return
 	}
 
 	defer session.EndSession(context.Background())
 
 	if err := session.StartTransaction(); err != nil {
-		web.AbortHttp(c, err)
+		pc.AbortHttp(c, err)
 		return
 	}
 
@@ -189,7 +173,7 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 	for err := range errCh {
 		if err != nil {
 			session.AbortTransaction(ctx)
-			web.AbortHttp(c, err)
+			pc.AbortHttp(c, err)
 			return
 		}
 	}
@@ -208,11 +192,11 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 
 	if err := session.CommitTransaction(ctx); err != nil {
 		session.AbortTransaction(ctx)
-		web.AbortHttp(c, err)
+		pc.AbortHttp(c, err)
 		return
 	}
 
-	web.WriteResponse(c, web.WebResponse{
+	pc.WriteResponse(c, web.WebResponse{
 		Message: "success",
 		Code:    200,
 	})
@@ -220,7 +204,7 @@ func (pc *PostControllerImpl) DeletePost(c *gin.Context) {
 
 func (pc *PostControllerImpl) BulkCreatePost(c *gin.Context) {
 	if h.GetStage(c) != "Development" {
-		web.CustomMsgAbortHttp(c, "No Content", 204)
+		pc.CustomMsgAbortHttp(c, "No Content", 204)
 		return
 	}
 
@@ -238,7 +222,7 @@ func (pc *PostControllerImpl) BulkCreatePost(c *gin.Context) {
 			data.Text = h.Encryption(data.Text)
 			posts = append(posts, models.Post{
 				UserId: data.UserId,
-				Text:   h.Encryption(data.Text),
+				Text:   data.Text,
 				Media: models.Media{
 					Url:  data.Media.Url,
 					Id:   data.Media.Id,
@@ -256,25 +240,6 @@ func (pc *PostControllerImpl) BulkCreatePost(c *gin.Context) {
 
 	pc.Service.InsertManyAndBindIds(context.Background(), posts)
 
-	// var postDocuments []br.PostDocument
-	// for _, post := range posts {
-	// 	postDocuments = append(postDocuments, br.PostDocument{
-	// 		Id:           post.Id.Hex(),
-	// 		UserId:       post.UserId,
-	// 		Text:         post.Text,
-	// 		AllowComment: post.AllowComment,
-	// 		CreatedAt:    post.CreatedAt,
-	// 		UpdatedAt:    post.UpdatedAt,
-	// 		Tags:         []string{},
-	// 		Privacy:      post.Privacy,
-	// 		Media: br.Media{
-	// 			Url:  post.Media.Url,
-	// 			Id:   post.Media.Id,
-	// 			Type: post.Media.Type,
-	// 		},
-	// 	})
-	// }
-
 	// go br.Broker.PublishMessage(
 	// 	context.Background(),
 	// 	br.POSTEXCHANGE,
@@ -283,7 +248,7 @@ func (pc *PostControllerImpl) BulkCreatePost(c *gin.Context) {
 	// 	&postDocuments,
 	// )
 
-	web.WriteResponse(c, web.WebResponse{
+	pc.WriteResponse(c, web.WebResponse{
 		Code:    201,
 		Message: "Success",
 		Data:    posts,

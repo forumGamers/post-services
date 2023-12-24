@@ -3,6 +3,7 @@ package web
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/post-services/errors"
 	h "github.com/post-services/helper"
 )
 
@@ -24,7 +25,11 @@ type InputError struct {
 	Message string `json:"message"`
 }
 
-func getStatusMessage(status int) string {
+func NewResponseWriter() ResponseWriter {
+	return &ResponseWriterImpl{}
+}
+
+func (w *ResponseWriterImpl) getStatusMessage(status int) string {
 	statusMessages := map[int]string{
 		100: "Continue",
 		101: "Switching Protocols",
@@ -115,24 +120,24 @@ func getErrorMsg(err error) (string, int) {
 	}
 }
 
-func WriteResponse(c *gin.Context, response WebResponse) {
-	response.Status = getStatusMessage(response.Code)
+func (w *ResponseWriterImpl) WriteResponse(c *gin.Context, response WebResponse) {
+	response.Status = w.getStatusMessage(response.Code)
 	c.JSON(response.Code, response)
 }
 
-func AbortHttp(c *gin.Context, err error) {
+func (w *ResponseWriterImpl) AbortHttp(c *gin.Context, err error) {
 	msg, code := getErrorMsg(err)
 
 	c.AbortWithStatusJSON(code, WebResponse{
-		Status:  getStatusMessage(code),
+		Status:  w.getStatusMessage(code),
 		Code:    code,
 		Message: msg,
 	})
 }
 
-func CustomMsgAbortHttp(c *gin.Context, message string, code int) {
+func (w *ResponseWriterImpl) CustomMsgAbortHttp(c *gin.Context, message string, code int) {
 	c.AbortWithStatusJSON(code, WebResponse{
-		Status:  getStatusMessage(code),
+		Status:  w.getStatusMessage(code),
 		Code:    code,
 		Message: message,
 	})
@@ -165,15 +170,44 @@ func MsgTag(f validator.FieldError) string {
 	}
 }
 
-func HttpValidationErr(c *gin.Context, err error) {
+func (w *ResponseWriterImpl) HttpValidationErr(c *gin.Context, err error) {
 	errMap := make(map[string]string)
 	for _, val := range err.(validator.ValidationErrors) {
 		errMap[val.Field()] = MsgTag(val)
 	}
 
 	c.AbortWithStatusJSON(400, WebResponse{
-		Status: getStatusMessage(400),
+		Status: w.getStatusMessage(400),
 		Code:   400,
 		Data:   errMap,
+	})
+}
+
+func (w *ResponseWriterImpl) New404Error(msg string) error {
+	return errors.NewError(msg, 404)
+}
+
+func (w *ResponseWriterImpl) New403Error(msg string) error {
+	return errors.NewError(msg, 403)
+}
+
+func (w *ResponseWriterImpl) New401Error(msg string) error {
+	return errors.NewError(msg, 401)
+}
+
+func (w *ResponseWriterImpl) New400Error(msg string) error {
+	return errors.NewError(msg, 400)
+}
+
+func (w *ResponseWriterImpl) NewInvalidObjectIdError() error {
+	return errors.NewInvalidObjectIdError()
+}
+
+func (w *ResponseWriterImpl) Write200Response(c *gin.Context, msg string, data any) {
+	w.WriteResponse(c, WebResponse{
+		200,
+		w.getStatusMessage(200),
+		msg,
+		data,
 	})
 }

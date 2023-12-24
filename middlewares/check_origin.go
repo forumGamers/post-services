@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CheckOrigin(c *gin.Context) {
+func (m *MiddlewareImpl) CheckOrigin(c *gin.Context) {
 	if c.Request.Method != "OPTIONS" {
 		origin := c.Request.Header.Get("Origin")
 		if origin == "" {
@@ -14,5 +14,5 @@ func CheckOrigin(c *gin.Context) {
 			return
 		}
 	}
-	c.Next()
+	m.Next(c)
 }

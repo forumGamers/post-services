@@ -6,13 +6,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	h "github.com/post-services/helper"
-	"github.com/post-services/web"
 )
 
-func Authentication(c *gin.Context) {
+func (m *MiddlewareImpl) Authentication(c *gin.Context) {
 	access_token := c.Request.Header.Get("access_token")
 	if access_token == "" {
-		web.AbortHttp(c, h.Forbidden)
+		m.AbortHttp(c, m.New403Error("Forbidden"))
 		return
 	}
 
@@ -21,10 +20,10 @@ func Authentication(c *gin.Context) {
 	if token, err := jwt.ParseWithClaims(access_token, &claim, func(t *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("SECRET")), nil
 	}); err != nil || !token.Valid {
-		web.AbortHttp(c, h.InvalidToken)
+		m.AbortHttp(c, h.InvalidToken)
 		return
 	}
 
-	c.Set("user", claim)
-	c.Next()
+	m.SetContext(c, "user", claim)
+	m.Next(c)
 }
