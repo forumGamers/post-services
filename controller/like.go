@@ -35,6 +35,7 @@ func (lc *LikeControllerImpl) LikePost(c *gin.Context) {
 
 	var like m.Like
 	if err := lc.Repo.GetLikesByUserIdAndPostId(context.Background(), postId, id, &like); err != nil {
+		//perbaiki nanti
 		if err != nil {
 			lc.AbortHttp(c, err)
 			return

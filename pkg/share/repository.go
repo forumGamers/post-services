@@ -13,17 +13,13 @@ type ShareRepo interface {
 }
 
 type ShareRepoImpl struct {
-	b.BaseRepoImpl
+	b.BaseRepo
 }
 
 func NewShareRepo() ShareRepo {
-	return &ShareRepoImpl{
-		BaseRepoImpl: *b.NewBaseRepo(b.GetCollection(b.Share)),
-	}
+	return &ShareRepoImpl{b.NewBaseRepo(b.GetCollection(b.Share))}
 }
 
 func (r *ShareRepoImpl) DeleteMany(ctx context.Context, postId primitive.ObjectID) error {
-	return r.BaseRepoImpl.DeleteMany(ctx, bson.M{
-		"postId": postId,
-	})
+	return r.DeleteManyByQuery(ctx, bson.M{"postId": postId})
 }

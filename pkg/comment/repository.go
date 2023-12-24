@@ -23,17 +23,15 @@ type CommentRepo interface {
 }
 
 type CommentRepoImpl struct {
-	b.BaseRepoImpl
+	b.BaseRepo
 }
 
 func NewCommentRepo() CommentRepo {
-	return &CommentRepoImpl{
-		BaseRepoImpl: *b.NewBaseRepo(b.GetCollection(b.Comment)),
-	}
+	return &CommentRepoImpl{b.NewBaseRepo(b.GetCollection(b.Comment))}
 }
 
 func (r *CommentRepoImpl) CreateComment(ctx context.Context, data *m.Comment) error {
-	result, err := r.BaseRepoImpl.Create(ctx, &data)
+	result, err := r.Create(ctx, &data)
 	if err != nil {
 		return err
 	}
@@ -50,13 +48,11 @@ func (r *CommentRepoImpl) DeleteOne(ctx context.Context, id primitive.ObjectID) 
 }
 
 func (r *CommentRepoImpl) CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error) {
-	return r.DB.InsertMany(ctx, datas)
+	return r.InsertMany(ctx, datas)
 }
 
 func (r *CommentRepoImpl) CreateReply(ctx context.Context, id primitive.ObjectID, data *m.ReplyComment) error {
-	if _, err := r.BaseRepoImpl.DB.UpdateByID(ctx, bson.M{
-		"_id": id,
-	}, bson.M{
+	if _, err := r.UpdateOneByQuery(ctx, id, bson.M{
 		"$push": bson.M{
 			"reply": data,
 		},
@@ -67,7 +63,7 @@ func (r *CommentRepoImpl) CreateReply(ctx context.Context, id primitive.ObjectID
 }
 
 func (r *CommentRepoImpl) DeleteReplyByPostId(ctx context.Context, postId primitive.ObjectID) error {
-	cursor, err := r.BaseRepoImpl.DB.Find(ctx, bson.M{"postId": postId})
+	cursor, err := r.FindByQuery(ctx, bson.M{"postId": postId})
 	if err != nil {
 		return err
 	}
@@ -85,7 +81,7 @@ func (r *CommentRepoImpl) DeleteReplyByPostId(ctx context.Context, postId primit
 	}
 
 	if len(commentIds) > 0 {
-		if _, err := r.DB.DeleteMany(ctx, bson.M{
+		if err := r.DeleteManyByQuery(ctx, bson.M{
 			"commentId": bson.M{
 				"$in": commentIds,
 			},
@@ -97,22 +93,21 @@ func (r *CommentRepoImpl) DeleteReplyByPostId(ctx context.Context, postId primit
 }
 
 func (r *CommentRepoImpl) FindReplyById(ctx context.Context, id, replyId primitive.ObjectID, data *m.ReplyComment) error {
-	if err := r.BaseRepoImpl.DB.FindOne(ctx, bson.M{
+	if err := r.FindOneByQuery(ctx, bson.M{
 		"_id": id,
 		"reply": bson.M{
 			"$elemMatch": bson.M{
 				"_id": replyId,
 			},
 		},
-	}).Decode(&data); err != nil {
+	}, &data); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (r *CommentRepoImpl) DeleteOneReply(ctx context.Context, id, replyId primitive.ObjectID) error {
-	if _, err := r.BaseRepoImpl.DB.DeleteOne(ctx, bson.M{
-		"_id": id,
+	if _, err := r.UpdateOneByQuery(ctx, id, bson.M{
 		"reply": bson.M{
 			"$pull": bson.M{
 				"$elemMatch": bson.M{
@@ -127,7 +122,5 @@ func (r *CommentRepoImpl) DeleteOneReply(ctx context.Context, id, replyId primit
 }
 
 func (r *CommentRepoImpl) DeleteMany(ctx context.Context, postId primitive.ObjectID) error {
-	return r.BaseRepoImpl.DeleteMany(ctx, bson.M{
-		"postId": postId,
-	})
+	return r.DeleteManyByQuery(ctx, bson.M{"postId": postId})
 }

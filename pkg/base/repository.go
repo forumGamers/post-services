@@ -10,35 +10,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type CollectionName string
-
-const (
-	Post    CollectionName = "post"
-	Like    CollectionName = "like"
-	Comment CollectionName = "comment"
-	Reply   CollectionName = "replyComment"
-	Share   CollectionName = "share"
-	Log     CollectionName = "log"
-)
-
-type BaseRepo interface {
-	DeleteMany(ctx context.Context, filter any) error
-	DeleteOneById(ctx context.Context, id primitive.ObjectID) error
-	FindOneById(ctx context.Context, id primitive.ObjectID, data any) error
-	InsertMany(ctx context.Context, data []any) (*mongo.InsertManyResult, error)
+func NewBaseRepo(db *mongo.Collection) BaseRepo {
+	return &BaseRepoImpl{db}
 }
 
-type BaseRepoImpl struct {
-	DB *mongo.Collection
-}
-
-func NewBaseRepo(db *mongo.Collection) *BaseRepoImpl {
-	return &BaseRepoImpl{
-		DB: db,
-	}
-}
-
-func (r *BaseRepoImpl) DeleteMany(ctx context.Context, filter any) error {
+func (r *BaseRepoImpl) DeleteManyByQuery(ctx context.Context, filter any) error {
 	if _, err := r.DB.DeleteMany(ctx, filter); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return errors.NewError("Data not found", 404)
@@ -52,6 +28,16 @@ func (r *BaseRepoImpl) DeleteOneById(ctx context.Context, id primitive.ObjectID)
 	if _, err := r.DB.DeleteOne(ctx, bson.M{
 		"_id": id,
 	}); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return errors.NewError("Data not found", 404)
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *BaseRepoImpl) DeleteOneByQuery(ctx context.Context, query any) error {
+	if _, err := r.DB.DeleteOne(ctx, query); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return errors.NewError("Data not found", 404)
 		}
@@ -86,4 +72,26 @@ func (r *BaseRepoImpl) Create(ctx context.Context, data any) (primitive.ObjectID
 
 func GetCollection(name CollectionName) *mongo.Collection {
 	return cfg.DB.Collection(string(name))
+}
+
+func (r *BaseRepoImpl) FindOneByQuery(ctx context.Context, query any, result any) error {
+	if err := r.DB.FindOne(ctx, query).Decode(result); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return errors.NewError("Data not found", 404)
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *BaseRepoImpl) UpdateOneByQuery(ctx context.Context, id primitive.ObjectID, query any) (*mongo.UpdateResult, error) {
+	return r.DB.UpdateByID(ctx, bson.M{"_id": id}, query)
+}
+
+func (r *BaseRepoImpl) FindByQuery(ctx context.Context, query any) (*mongo.Cursor, error) {
+	return r.DB.Find(ctx, query)
+}
+
+func (r *BaseRepoImpl) GetSession() (mongo.Session, error) {
+	return r.DB.Database().Client().StartSession()
 }

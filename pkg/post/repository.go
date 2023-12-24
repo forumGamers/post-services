@@ -18,17 +18,15 @@ type PostRepo interface {
 }
 
 type PostRepoImpl struct {
-	b.BaseRepoImpl
+	b.BaseRepo
 }
 
 func NewPostRepo() PostRepo {
-	return &PostRepoImpl{
-		BaseRepoImpl: *b.NewBaseRepo(b.GetCollection(b.Post)),
-	}
+	return &PostRepoImpl{b.NewBaseRepo(b.GetCollection(b.Post))}
 }
 
 func (r *PostRepoImpl) Create(ctx context.Context, data *m.Post) error {
-	result, err := r.BaseRepoImpl.Create(ctx, data)
+	result, err := r.BaseRepo.Create(ctx, data)
 	if err != nil {
 		return err
 	}
@@ -41,7 +39,7 @@ func (r *PostRepoImpl) FindById(ctx context.Context, id primitive.ObjectID, data
 }
 
 func (r *PostRepoImpl) GetSession() (mongo.Session, error) {
-	return r.DB.Database().Client().StartSession()
+	return r.BaseRepo.GetSession()
 }
 
 func (r *PostRepoImpl) DeleteOne(ctx context.Context, id primitive.ObjectID) error {
@@ -49,5 +47,5 @@ func (r *PostRepoImpl) DeleteOne(ctx context.Context, id primitive.ObjectID) err
 }
 
 func (r *PostRepoImpl) CreateMany(ctx context.Context, datas []any) (*mongo.InsertManyResult, error) {
-	return r.DB.InsertMany(ctx, datas)
+	return r.InsertMany(ctx, datas)
 }

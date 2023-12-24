@@ -39,9 +39,7 @@ func ImageKitConnection() ImageKitService {
 	ik, err := imagekit.NewClient(&opts)
 	errors.PanicIfError(err)
 
-	return &ImageKit{
-		Client: ik,
-	}
+	return &ImageKit{ik}
 }
 
 func (ik *ImageKit) UploadFile(ctx context.Context, file []byte, fileName string, folder string) ImageKitResult {
